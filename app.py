@@ -1,76 +1,54 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-import os
 
 # Configuração da página da Web
 st.set_page_config(page_title="Controle de Pesagem - Mussarela", page_icon="🧀", layout="centered")
 
-NOME_ARQUIVO = "registro_pesagem.csv"
-
-# Função para carregar os dados existentes
-def carregar_dados():
-    if os.path.exists(NOME_ARQUIVO):
-        return pd.read_csv(NOME_ARQUIVO, sep=";")
-    else:
-        return pd.DataFrame(columns=['Data', 'Hora', 'Peso (kg)', 'Lote'])
-
-# Inicializa o banco de dados na sessão do site
-if 'dados' not in st.session_state:
-    st.session_state.dados = carregar_dados()
-
-# --- INTERFACE DO NAVEGADOR (O que o funcionário vai ver) ---
 st.title("🧀 Controle de Produção e Pesagem")
-st.subheader("Registros Recebidos da Balança Industrial")
+st.subheader("Registros Sincronizados com o Google Sheets")
 
-# Botões de Atualização e Download
-col1, col2 = st.columns(2)
+# ⚠️ SUBSTITUA O LINK ABAIXO PELO LINK DE COMPARTILHAMENTO DA SUA PLANILHA!
+# Você deve ir na sua planilha do Google, clicar em "Compartilhar", colocar como "Qualquer pessoa com o link pode ler", copiar o link e colar aqui.
+LINK_DA_PLANILHA = "https://docs.google.com/spreadsheets/d/1lx5pbPRlsT9BH4Z9N3cI1apf7UBc1u3q79TeNN_T-uA/edit?usp=sharing"
 
-with col1:
-    if st.button("🔄 Atualizar Dados"):
-        st.session_state.dados = carregar_dados()
-        st.rerun()
+# Função para converter o link normal da planilha em um link de download de dados
+def converter_link_csv(link):
+    try:
+        id_planilha = link.split("/d/")[1].split("/")[0]
+        return f"https://docs.google.com/spreadsheets/d/{id_planilha}/export?format=csv"
+    except:
+        return None
 
-with col2:
-    # Transforma os dados em Excel para download
-    df_atual = st.session_state.dados
-    csv = df_atual.to_csv(index=False, sep=";").encode('utf-8-sig')
-    st.download_button(
-        label="📥 Baixar Planilha para o Excel",
-        data=csv,
-        file_name=f"pesagem_mussarela_{datetime.now().strftime('%Y-%m-%d')}.csv",
-        mime="text/csv",
-    )
+url_csv = converter_link_csv(LINK_DA_PLANILHA)
+
+# Botão de Atualização
+if st.button("🔄 Atualizar Dados da Balança"):
+    st.rerun()
 
 st.markdown("---")
 
-# Exibe a tabela na tela do navegador
-st.markdown("### 📋 Registros Recentes")
-if not st.session_state.dados.empty:
-    st.dataframe(st.session_state.dados.tail(20), use_container_width=True) # Mostra os últimos 20 registros
+st.markdown("### 📋 Registros Recentes (Direto do Banco de Dados)")
+
+if url_csv:
+    try:
+        # Lê os dados da planilha do Google em tempo real
+        df = pd.read_csv(url_csv)
+        
+        if not df.empty:
+            st.dataframe(df.tail(20), use_container_width=True) # Mostra os últimos 20 registros
+            
+            # Botão de download do Excel
+            csv_dados = df.to_csv(index=False, sep=";").encode('utf-8-sig')
+            st.download_button(
+                label="📥 Baixar Planilha para o Excel",
+                data=csv_dados,
+                file_name=f"pesagem_mussarela_{datetime.now().strftime('%Y-%m-%d')}.csv",
+                mime="text/csv",
+            )
+        else:
+            st.info("A planilha do Google está vazia. Aguardando dados do Arduino...")
+    except Exception as e:
+        st.error("Erro ao conectar com a Planilha do Google. Verifique se o link está correto e público.")
 else:
-    st.info("Nenhum registro encontrado ainda. Aguardando dados da balança...")
-
-# --- ROTA DE RECEPÇÃO PARA O ARDUINO (Invisível no navegador) ---
-# O Arduino vai acessar esse link enviando os parâmetros na URL
-query_params = st.query_params
-
-if "peso" in query_params and "lote" in query_params:
-    peso = query_params["peso"]
-    lote = query_params["lote"]
-    
-    # Captura data e hora atuais
-    agora = datetime.now()
-    data_atual = agora.strftime('%d/%m/%Y')
-    hora_atual = agora.strftime('%H:%M:%S')
-    
-    # Salva no arquivo
-    nova_linha = pd.DataFrame([[data_atual, hora_atual, peso, lote]], columns=['Data', 'Hora', 'Peso (kg)', 'Lote'])
-    nova_linha.to_csv(NOME_ARQUIVO, mode='a', header=not os.path.exists(NOME_ARQUIVO), index=False, sep=";")
-    
-    # Limpa os parâmetros da URL para não repetir o registro no próximo carregamento
-    st.query_params.clear()
-    
-    # Mostra um aviso rápido na tela e responde OK para a rede
-    st.success(f"Novo peso registrado: {peso}kg | Lote: {lote}")
-    st.write("OK") # Resposta que o Arduino lê para acender o LED Verde
+    st.warning("Por favor, configure o link da sua planilha do Google no código.")
