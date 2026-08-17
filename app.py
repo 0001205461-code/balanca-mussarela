@@ -1,344 +1,721 @@
-import streamlit as st
+import io
+import os
+from datetime import datetime
+
 import pandas as pd
 import plotly.express as px
+import plotly.graph_objects as go
 import requests
-import os
+import streamlit as st
 
-# ---------------------------------------------------------
-# CONFIGURAÇÃO VISUAL - IDENTITY AMIRA (TECH GLOW / DARK)
-# ---------------------------------------------------------
+# =========================================================
+# AMIRA — PAINEL DE MONITORAMENTO DA BALANÇA
+# =========================================================
+
 st.set_page_config(
-    page_title="AMIRA",
+    page_title="AMIRA | Monitoramento de Produção",
     page_icon="⚡",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
 
-# Estilização CSS inspirada na Logo AMIRA
-st.markdown("""
-    <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap');
-
-    /* Fundo da aplicação */
-    .stApp {
-        background: radial-gradient(circle at 50% 20%, #151828 0%, #08090e 70%);
-        color: #e0e6ed;
-        font-family: 'Rajdhani', sans-serif;
-    }
-    
-    /* Barra Lateral (Sidebar) */
-    section[data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #0d0f17 0%, #121422 100%) !important;
-        border-right: 1px solid rgba(138, 43, 226, 0.4);
-        box-shadow: 4px 0 20px rgba(0, 0, 0, 0.5);
-    }
-
-    /* Botões de Navegação do Radio na Sidebar */
-    div[data-testid="stSidebar"] div[role="radiogroup"] label {
-        background: linear-gradient(145deg, #181b2c, #0f111d) !important;
-        border: 1px solid rgba(0, 162, 255, 0.2) !important;
-        padding: 12px 16px !important;
-        border-radius: 10px !important;
-        margin-bottom: 8px !important;
-        color: #a0aab8 !important;
-        font-family: 'Orbitron', sans-serif !important;
-        font-size: 0.85rem !important;
-        transition: all 0.3s ease !important;
-        cursor: pointer;
-    }
-    div[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
-        border-color: #00d2ff !important;
-        box-shadow: 0 0 15px rgba(0, 210, 255, 0.4) !important;
-        color: #ffffff !important;
-    }
-    div[data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"] {
-        background: linear-gradient(90deg, #00a2ff 0%, #8a2be2 100%) !important;
-        color: #ffffff !important;
-        font-weight: bold !important;
-        border: none !important;
-        box-shadow: 0 0 18px rgba(138, 43, 226, 0.6) !important;
-    }
-
-    /* Título AMIRA estilo Prateado / Metálico / Tech */
-    .amira-title {
-        font-family: 'Orbitron', sans-serif;
-        font-size: 3.5rem;
-        font-weight: 900;
-        letter-spacing: 4px;
-        background: linear-gradient(180deg, #ffffff 20%, #d1d5db 50%, #00d2ff 85%, #8a2be2 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        filter: drop-shadow(0 0 12px rgba(0, 210, 255, 0.3));
-        margin: 0;
-        padding: 0;
-    }
-
-    /* Cards de Métricas */
-    div[data-testid="stMetricValue"] {
-        color: #00d2ff !important;
-        font-family: 'Orbitron', sans-serif !important;
-        font-weight: 700;
-        font-size: 1.8rem !important;
-    }
-    div[data-testid="stMetricLabel"] {
-        color: #a0aab8 !important;
-        font-size: 1rem !important;
-        font-weight: 600;
-    }
-    .stMetric {
-        background: rgba(19, 21, 33, 0.8);
-        backdrop-filter: blur(10px);
-        padding: 18px;
-        border-radius: 12px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
-        border: 1px solid rgba(138, 43, 226, 0.3);
-        border-left: 4px solid #00d2ff;
-    }
-
-    /* Botões Gerais de Ação */
-    .stButton>button, div[data-testid="stDownloadButton"]>button {
-        background: linear-gradient(90deg, #00a2ff 0%, #8a2be2 100%) !important;
-        color: #ffffff !important;
-        font-family: 'Orbitron', sans-serif !important;
-        font-size: 0.85rem !important;
-        border-radius: 8px !important;
-        border: none !important;
-        padding: 10px 20px !important;
-        box-shadow: 0 0 12px rgba(0, 162, 255, 0.3);
-        transition: all 0.3s ease-in-out;
-    }
-    .stButton>button:hover, div[data-testid="stDownloadButton"]>button:hover {
-        box-shadow: 0 0 22px rgba(138, 43, 226, 0.8) !important;
-        transform: translateY(-2px);
-    }
-
-    /* Selectbox e Caixas de Entrada */
-    .stSelectbox label, .stTextInput label {
-        color: #00d2ff !important;
-        font-family: 'Rajdhani', sans-serif;
-        font-weight: 700;
-        font-size: 1.1rem;
-    }
-    div[data-baseweb="select"], div[data-baseweb="input"] {
-        background-color: #131521 !important;
-        color: #ffffff !important;
-        border-radius: 8px;
-        border: 1px solid rgba(138, 43, 226, 0.5) !important;
-    }
-
-    /* Esconder o rádio padrão para parecer botões da sidebar */
-    div[data-testid="stSidebar"] div[role="radiogroup"] label > div:first-child {
-        display: none;
-    }
-
-    /* Tabelas em estilo Dark Tech */
-    div[data-testid="stDataFrame"] {
-        background-color: #131521;
-        border-radius: 10px;
-        border: 1px solid rgba(138, 43, 226, 0.3);
-    }
-    </style>
-""", unsafe_allow_html=True)
-
+# ---------------------------------------------------------
+# CONFIGURAÇÕES
+# ---------------------------------------------------------
 URL_SCRIPT = "https://script.google.com/macros/s/AKfycbz55nUlT6dBdbIJ15pWoNN4yNzLv0tC4XBxHkojHJTz_CB_HbsN6JTMUb_mw5338GgjMA/exec"
-URL_LOGO = "https://i.postimg.cc/85y98G6p/amira-logo.jpg"
+TZ = "America/Sao_Paulo"
 
 # ---------------------------------------------------------
-# LEITURA DOS DADOS DAS ABAS
+# CSS — VISUAL AMIRA
 # ---------------------------------------------------------
-@st.cache_data(ttl=2)
+st.markdown(
+    """
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800&display=swap');
+
+:root {
+    --bg: #05070d;
+    --panel: #0b0f1a;
+    --panel2: #0f1422;
+    --line: rgba(85, 139, 255, .24);
+    --blue: #2f80ff;
+    --cyan: #00d2ff;
+    --purple: #8a35ff;
+    --text: #f4f7ff;
+    --muted: #8f9bb2;
+}
+
+html, body, [class*="css"] {
+    font-family: 'Inter', sans-serif;
+}
+
+.stApp {
+    background:
+        radial-gradient(circle at 70% 15%, rgba(54, 83, 180, .12), transparent 28%),
+        radial-gradient(circle at 95% 75%, rgba(138, 53, 255, .10), transparent 30%),
+        #05070d;
+    color: var(--text);
+}
+
+.block-container {
+    padding: 1.5rem 2rem 2rem 2rem;
+    max-width: 1700px;
+}
+
+section[data-testid="stSidebar"] {
+    background:
+        radial-gradient(circle at 50% 15%, rgba(50, 117, 255, .10), transparent 25%),
+        linear-gradient(180deg, #070a12 0%, #080b14 100%) !important;
+    border-right: 1px solid rgba(76, 122, 255, .18);
+}
+
+section[data-testid="stSidebar"] > div {
+    padding-top: 1.2rem;
+}
+
+.sidebar-logo {
+    width: 100%;
+    max-height: 185px;
+    object-fit: contain;
+    border-radius: 16px;
+    filter: drop-shadow(0 0 18px rgba(45, 126, 255, .16));
+}
+
+.brand-small {
+    text-align: center;
+    font-family: Orbitron, sans-serif;
+    font-size: 1.05rem;
+    font-weight: 800;
+    letter-spacing: 2px;
+    margin-top: -8px;
+}
+
+.brand-small span {
+    color: var(--cyan);
+}
+
+.side-caption {
+    text-align: center;
+    color: var(--muted);
+    font-size: .75rem;
+    margin-top: 4px;
+}
+
+.nav-title {
+    color: #6fdbff;
+    font-size: .70rem;
+    font-weight: 800;
+    letter-spacing: 1.5px;
+    margin: 25px 0 8px;
+}
+
+div[data-testid="stSidebar"] div[role="radiogroup"] {
+    gap: 8px;
+}
+
+div[data-testid="stSidebar"] div[role="radiogroup"] label {
+    background: linear-gradient(135deg, rgba(16, 22, 37, .95), rgba(10, 14, 25, .95)) !important;
+    border: 1px solid rgba(76, 122, 255, .15) !important;
+    border-radius: 12px !important;
+    padding: 12px 14px !important;
+    margin: 0 !important;
+    color: #aeb8ca !important;
+    transition: .25s ease !important;
+}
+
+div[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
+    border-color: rgba(0, 210, 255, .65) !important;
+    transform: translateX(3px);
+}
+
+div[data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"] {
+    background: linear-gradient(90deg, rgba(24, 112, 255, .92), rgba(117, 48, 238, .92)) !important;
+    color: white !important;
+    border-color: rgba(116, 192, 255, .7) !important;
+    box-shadow: 0 0 22px rgba(71, 100, 255, .25);
+}
+
+div[data-testid="stSidebar"] div[role="radiogroup"] label > div:first-child {
+    display: none;
+}
+
+.sidebar-status {
+    margin-top: 80px;
+    padding: 14px;
+    border: 1px solid rgba(83, 130, 255, .20);
+    border-radius: 12px;
+    background: rgba(10, 14, 25, .8);
+}
+
+.dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: #20e889;
+    border-radius: 50%;
+    box-shadow: 0 0 10px #20e889;
+    margin-right: 7px;
+}
+
+.top-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin: 0;
+}
+
+.top-title span {
+    color: #39a7ff;
+}
+
+.top-subtitle {
+    color: #a0aabd;
+    font-size: .92rem;
+    margin-top: 4px;
+}
+
+.status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 12px;
+    border: 1px solid rgba(71, 221, 156, .25);
+    background: rgba(18, 48, 39, .35);
+    border-radius: 999px;
+    color: #48e99a;
+    font-size: .78rem;
+    font-weight: 700;
+}
+
+.hero-line {
+    height: 1px;
+    background: linear-gradient(90deg, rgba(60,120,255,.35), rgba(130,60,255,.22), transparent);
+    margin: 18px 0 20px;
+}
+
+.action-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.stButton > button,
+.stDownloadButton > button {
+    border-radius: 10px !important;
+    border: 1px solid rgba(68, 137, 255, .55) !important;
+    background: linear-gradient(100deg, #0876df, #5631d6) !important;
+    color: white !important;
+    font-weight: 700 !important;
+    min-height: 42px !important;
+    box-shadow: 0 0 18px rgba(47, 128, 255, .16);
+    transition: .2s ease !important;
+}
+
+.stButton > button:hover,
+.stDownloadButton > button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 25px rgba(103, 67, 255, .35);
+}
+
+.metric-card {
+    position: relative;
+    overflow: hidden;
+    min-height: 128px;
+    padding: 20px;
+    border-radius: 15px;
+    border: 1px solid rgba(87, 125, 210, .20);
+    background: linear-gradient(145deg, rgba(14, 19, 32, .96), rgba(7, 11, 20, .92));
+    box-shadow: 0 12px 35px rgba(0,0,0,.24);
+}
+
+.metric-card::after {
+    content: "";
+    position: absolute;
+    width: 110px;
+    height: 110px;
+    right: -35px;
+    bottom: -45px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(37, 131, 255, .20), transparent 70%);
+}
+
+.metric-label {
+    color: #9ca8bc;
+    font-size: .78rem;
+    font-weight: 700;
+}
+
+.metric-value {
+    font-family: Orbitron, sans-serif;
+    font-size: 1.75rem;
+    font-weight: 700;
+    margin-top: 8px;
+}
+
+.metric-foot {
+    color: #718097;
+    font-size: .72rem;
+    margin-top: 8px;
+}
+
+.icon-blue { color: #4aa8ff; }
+.icon-purple { color: #a871ff; }
+.icon-cyan { color: #4de8ff; }
+
+.panel {
+    border: 1px solid rgba(88, 130, 230, .20);
+    background: linear-gradient(145deg, rgba(11, 16, 28, .96), rgba(6, 10, 18, .96));
+    border-radius: 15px;
+    padding: 18px;
+    box-shadow: 0 15px 40px rgba(0,0,0,.22);
+}
+
+.panel-title {
+    font-size: 1rem;
+    font-weight: 800;
+    margin-bottom: 4px;
+}
+
+.panel-sub {
+    color: #77849a;
+    font-size: .75rem;
+}
+
+.data-title {
+    font-size: 1.15rem;
+    font-weight: 800;
+}
+
+div[data-testid="stDataFrame"] {
+    border: 1px solid rgba(76, 122, 255, .20);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+[data-testid="stDataFrame"] iframe {
+    border-radius: 12px;
+}
+
+.stSelectbox label,
+.stTextInput label {
+    color: #8cdfff !important;
+    font-weight: 700 !important;
+}
+
+div[data-baseweb="select"] > div,
+div[data-baseweb="input"] > div {
+    background: #0c111e !important;
+    border-color: rgba(76, 122, 255, .25) !important;
+}
+
+div[data-baseweb="select"] span {
+    color: #e8efff !important;
+}
+
+div[data-testid="stAlert"] {
+    border-radius: 12px;
+}
+
+.section-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    margin: 5px 0 2px;
+}
+
+.section-subtitle {
+    color: #7d8ba2;
+    font-size: .78rem;
+    margin-bottom: 12px;
+}
+
+.footer {
+    color: #59677d;
+    font-size: .68rem;
+    text-align: center;
+    padding: 20px 0 0;
+}
+
+div[data-testid="stMetric"] {
+    background: transparent;
+}
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
+# ---------------------------------------------------------
+# FUNÇÕES
+# ---------------------------------------------------------
+def normalizar_colunas(df: pd.DataFrame) -> pd.DataFrame:
+    if df is None or df.empty:
+        return pd.DataFrame(columns=["Data", "Hora", "Peso (kg)", "Lote"])
+
+    df = df.copy()
+    renomear = {}
+    for c in df.columns:
+        chave = str(c).strip().lower().replace(" ", "").replace("_", "")
+        if chave == "peso":
+            renomear[c] = "Peso (kg)"
+        elif chave in {"peso(kg)", "pesokg"}:
+            renomear[c] = "Peso (kg)"
+        elif chave == "data":
+            renomear[c] = "Data"
+        elif chave == "hora":
+            renomear[c] = "Hora"
+        elif chave == "lote":
+            renomear[c] = "Lote"
+    df = df.rename(columns=renomear)
+
+    for col in ["Data", "Hora", "Peso (kg)", "Lote"]:
+        if col not in df.columns:
+            df[col] = None
+
+    df["Peso (kg)"] = pd.to_numeric(df["Peso (kg)"], errors="coerce")
+    return df[["Data", "Hora", "Peso (kg)", "Lote"]]
+
+
+@st.cache_data(ttl=10)
 def carregar_dados_todas_abas():
     try:
-        res = requests.get(URL_SCRIPT, timeout=10)
-        dados_json = res.json()
-        
-        dict_dfs = {}
-        for nome_aba, conteudo in dados_json.items():
-            if len(conteudo) > 1:
-                df = pd.DataFrame(conteudo[1:], columns=conteudo[0])
-                if "Peso" in df.columns:
-                    df["Peso"] = pd.to_numeric(df["Peso"], errors='coerce')
-                dict_dfs[nome_aba] = df
-        return dict_dfs
-    except Exception:
+        resposta = requests.get(URL_SCRIPT, timeout=15)
+        resposta.raise_for_status()
+        dados = resposta.json()
+
+        if not isinstance(dados, dict):
+            return {}
+
+        resultado = {}
+        for nome_aba, conteudo in dados.items():
+            if not isinstance(conteudo, list) or len(conteudo) < 1:
+                continue
+            cabecalho = conteudo[0]
+            linhas = conteudo[1:]
+            df = pd.DataFrame(linhas, columns=cabecalho)
+            resultado[str(nome_aba)] = normalizar_colunas(df)
+
+        return resultado
+    except Exception as erro:
+        st.session_state["erro_api"] = str(erro)
         return {}
 
+
+def obter_df_selecionado(dados, nome):
+    return dados.get(nome, pd.DataFrame(columns=["Data", "Hora", "Peso (kg)", "Lote"]))
+
+
+def exportar_xlsx(df: pd.DataFrame) -> bytes:
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="Registros")
+        ws = writer.book["Registros"]
+        ws.freeze_panes = "A2"
+        ws.auto_filter.ref = ws.dimensions
+        for col in ws.columns:
+            max_len = max(len(str(cell.value or "")) for cell in col)
+            ws.column_dimensions[col[0].column_letter].width = min(max(max_len + 2, 12), 28)
+    return buffer.getvalue()
+
+
+def grafico_layout(fig, height=310):
+    fig.update_layout(
+        template="plotly_dark",
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#aeb9cb", family="Inter"),
+        margin=dict(l=15, r=15, t=25, b=10),
+        height=height,
+        legend=dict(bgcolor="rgba(0,0,0,0)"),
+        xaxis=dict(gridcolor="rgba(90,120,180,.10)", zeroline=False),
+        yaxis=dict(gridcolor="rgba(90,120,180,.10)", zeroline=False),
+    )
+    return fig
+
+
+def mostrar_metricas(df):
+    total = len(df)
+    peso_total = float(df["Peso (kg)"].sum()) if not df.empty else 0
+    media = float(df["Peso (kg)"].mean()) if not df.empty else 0
+    maior = float(df["Peso (kg)"].max()) if not df.empty else 0
+
+    c1, c2, c3, c4 = st.columns(4)
+    cards = [
+        ("📦", "Total de Lotes", f"{total:,}".replace(",", "."), "Registros no dia", "blue"),
+        ("⚖", "Peso Total (kg)", f"{peso_total:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."), "Produção registrada", "cyan"),
+        ("◈", "Média por Lote", f"{media:,.2f} kg".replace(",", "X").replace(".", ",").replace("X", "."), "Média dos registros", "purple"),
+        ("↑", "Maior Peso", f"{maior:,.2f} kg".replace(",", "X").replace(".", ",").replace("X", "."), "Maior registro do dia", "purple"),
+    ]
+
+    for col, (icon, label, value, foot, color) in zip([c1, c2, c3, c4], cards):
+        with col:
+            st.markdown(
+                f"""
+                <div class="metric-card">
+                    <div class="metric-label"><span class="icon-{color}">{icon}</span>&nbsp;&nbsp;{label}</div>
+                    <div class="metric-value">{value}</div>
+                    <div class="metric-foot">{foot}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+
 # ---------------------------------------------------------
-# BARRA LATERAL (SIDEBAR COM LOGO E BOTOES DE NAVEGACAO)
+# SIDEBAR
 # ---------------------------------------------------------
 with st.sidebar:
     if os.path.exists("logo.jpg"):
         st.image("logo.jpg", use_container_width=True)
-    elif os.path.exists("logo.png"):
-        st.image("logo.png", use_container_width=True)
     else:
-        st.image(URL_LOGO, use_container_width=True)
-        
-    st.markdown("<h3 style='text-align: center; color: #ffffff; font-family: Orbitron; margin-bottom: 0;'>AMIRA System</h3>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center; color: #a0aab8; font-size: 0.85rem;'>Tecnologia e Inteligência</p>", unsafe_allow_html=True)
-    st.markdown("---")
+        st.markdown("<div class='brand-small'>A<span>Mi</span>RA</div>", unsafe_allow_html=True)
 
-    st.markdown("<p style='color: #00d2ff; font-weight: bold; font-size: 0.9rem;'>MENU DE NAVEGAÇÃO</p>", unsafe_allow_html=True)
-    
-    # Botões na Sidebar abaixo de AMIRA System
-    menu_opcao = st.radio(
-        label="Menu",
-        options=["📋 Registros & Dados", "📊 Gráficos & Análises", "➕ Nova Aba"],
-        label_visibility="collapsed"
+    st.markdown(
+        "<div class='brand-small'>Sistema <span>AMIRA</span></div>"
+        "<div class='side-caption'>Monitoramento • Automação • Precisão</div>",
+        unsafe_allow_html=True,
+    )
+
+    st.markdown("<div class='nav-title'>MENU DE NAVEGAÇÃO</div>", unsafe_allow_html=True)
+
+    menu = st.radio(
+        "Menu",
+        ["📋  Registro e Dados", "📊  Gráficos e Análises", "＋  Nova Aba"],
+        label_visibility="collapsed",
+    )
+
+    st.markdown(
+        """
+        <div class="sidebar-status">
+            <div style="font-weight:800;">Sistema AMIRA</div>
+            <div style="color:#7f8da4;font-size:.75rem;margin-top:5px;">
+                <span class="dot"></span>Conectado ao monitoramento
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    st.markdown(
+        "<div class='footer'>© 2026 AMIRA • SENAI<br>IoT • Automação • Precisão</div>",
+        unsafe_allow_html=True,
     )
 
 # ---------------------------------------------------------
-# CABEÇALHO DA PÁGINA
+# CABEÇALHO
 # ---------------------------------------------------------
-col_title, col_btn = st.columns([4, 1])
+header_left, header_right = st.columns([3.2, 1.5])
 
-with col_title:
-    st.markdown('<h1 class="amira-title">AMIRA</h1>', unsafe_allow_html=True)
+with header_left:
+    st.markdown(
+        """
+        <div class="top-title">Bem-vindo ao <span>AMIRA</span></div>
+        <div class="top-subtitle">Sistema de Monitoramento e Registro de Produção</div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-with col_btn:
-    st.write("")
-    if st.button("🔄 Sincronizar"):
-        st.cache_data.clear()
-        st.rerun()
+with header_right:
+    h1, h2 = st.columns(2)
+    with h1:
+        st.markdown("<div class='status-pill'>● Online</div>", unsafe_allow_html=True)
+    with h2:
+        if st.button("↻  Recarregar", use_container_width=True):
+            st.cache_data.clear()
+            st.rerun()
+
+st.markdown("<div class='hero-line'></div>", unsafe_allow_html=True)
 
 dados_abas = carregar_dados_todas_abas()
 
+# Ordena datas no formato dd-MM-yyyy quando possível
+def chave_aba(nome):
+    try:
+        return datetime.strptime(nome, "%d-%m-%Y")
+    except Exception:
+        return datetime.min
+
+lista_abas = sorted(dados_abas.keys(), key=chave_aba, reverse=True)
+
+if "erro_api" in st.session_state and not dados_abas:
+    st.warning("Não foi possível atualizar os dados agora. Verifique se o Google Apps Script está publicado como aplicativo da Web.")
+
 # ---------------------------------------------------------
-# PÁGINA 1: REGISTROS & DADOS
+# REGISTRO E DADOS
 # ---------------------------------------------------------
-if menu_opcao == "📋 Registros & Dados":
-    st.markdown("<br>", unsafe_allow_html=True)
-    if not dados_abas:
-        st.info("⚠️ Nenhum registro encontrado ou conectando à planilha... Clique em **'🔄 Sincronizar'** no canto superior direito ou crie uma aba no menu **'➕ Nova Aba'**.")
+if menu == "📋  Registro e Dados":
+    if not lista_abas:
+        st.info("Aguardando dados da balança. Quando o primeiro registro for enviado, o AMIRA criará automaticamente a aba do dia.")
     else:
-        lista_datas = list(dados_abas.keys())
-        data_selecionada = st.selectbox("📅 Selecionar Dia de Produção:", options=lista_datas, index=0)
+        dia = st.selectbox("Dia de produção", lista_abas, index=0)
+        df = obter_df_selecionado(dados_abas, dia)
 
-        df_dia = dados_abas[data_selecionada]
+        mostrar_metricas(df)
+        st.markdown("<br>", unsafe_allow_html=True)
 
-        # Cards de Métricas
-        col1, col2, col3 = st.columns(3)
-        total_caixas = len(df_dia)
-        media_peso = df_dia["Peso"].mean() if ("Peso" in df_dia.columns and not df_dia.empty) else 0
-        peso_total_dia = df_dia["Peso"].sum() if ("Peso" in df_dia.columns and not df_dia.empty) else 0
-
-        with col1:
-            st.metric(label="📦 Caixas Pesadas", value=f"{total_caixas}")
-        with col2:
-            st.metric(label="⚖️ Média de Peso Diária", value=f"{media_peso:.2f} kg")
-        with col3:
-            st.metric(label="📊 Volume Total Processado", value=f"{peso_total_dia:.2f} kg")
-
-        st.markdown("---")
-        st.write(f"### Tabela de Registros — Data: **{data_selecionada}**")
-        st.dataframe(df_dia, use_container_width=True, height=400)
-
-        # Botão de exportação
-        csv_data = df_dia.to_csv(index=False).encode('utf-8-sig')
-        st.download_button(
-            label=f"📥 Exportar Planilha ({data_selecionada})",
-            data=csv_data,
-            file_name=f"AMIRA_{data_selecionada}.csv",
-            mime="text/csv"
-        )
-
-# ---------------------------------------------------------
-# PÁGINA 2: GRÁFICOS & ANÁLISES
-# ---------------------------------------------------------
-elif menu_opcao == "📊 Gráficos & Análises":
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.write("### 📈 Visualizações Gráficas e Análise de Produção")
-    
-    if not dados_abas:
-        st.info("⚠️ Aguardando dados da planilha para gerar gráficos.")
-    else:
-        lista_datas = list(dados_abas.keys())
-        data_grafico = st.selectbox("📊 Selecionar dia para ver o gráfico de oscilação:", options=lista_datas, index=0)
-        df_graf = dados_abas[data_grafico]
-
-        if not df_graf.empty and "Peso" in df_graf.columns and "Hora" in df_graf.columns:
-            fig_linha = px.line(
-                df_graf, 
-                x="Hora", 
-                y="Peso", 
-                markers=True,
-                title=f"Oscilação por Unidade Pesada ({data_grafico})",
-                template="plotly_dark"
+        left, right = st.columns([3.3, 1])
+        with left:
+            st.markdown(
+                f"""
+                <div class="panel">
+                    <div class="data-title">Dados do Dia</div>
+                    <div class="panel-sub">Registros da produção • {dia}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
             )
-            fig_linha.update_traces(line_color='#00d2ff', marker=dict(size=8, color='#8a2be2'))
-            fig_linha.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-            st.plotly_chart(fig_linha, use_container_width=True)
+        with right:
+            xlsx = exportar_xlsx(df)
+            st.download_button(
+                "↓  Baixar Planilha",
+                data=xlsx,
+                file_name=f"AMIRA_{dia}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+            )
 
-        st.markdown("---")
-        
-        # Gráficos Comparativos Gerais (Histórico)
-        st.write("### 📊 Análise Comparativa Entre os Dias")
-        resumo_dias = []
-        todos_pesos_mes = []
+        st.markdown("<br>", unsafe_allow_html=True)
 
-        for data_nome, df_temp in dados_abas.items():
-            if not df_temp.empty and "Peso" in df_temp.columns:
-                cnt = len(df_temp)
-                med = df_temp["Peso"].mean()
-                resumo_dias.append({"Data": data_nome, "Média Peso (kg)": med, "Qtd Caixas": cnt})
-                todos_pesos_mes.extend(df_temp["Peso"].dropna().tolist())
+        if df.empty:
+            st.info("A aba selecionada ainda não possui registros.")
+        else:
+            st.dataframe(
+                df,
+                use_container_width=True,
+                height=420,
+                hide_index=True,
+                column_config={
+                    "Data": st.column_config.TextColumn("Data"),
+                    "Hora": st.column_config.TextColumn("Hora"),
+                    "Peso (kg)": st.column_config.NumberColumn("Peso (kg)", format="%.2f"),
+                    "Lote": st.column_config.TextColumn("Lote"),
+                },
+            )
 
-        df_resumo_mes = pd.DataFrame(resumo_dias)
+        # Resumo visual
+        st.markdown("<br>", unsafe_allow_html=True)
+        a, b = st.columns([2, 1])
 
-        col_g1, col_g2 = st.columns(2)
-
-        with col_g1:
-            st.write("#### Média de Peso por Dia")
-            if not df_resumo_mes.empty:
-                fig_bar = px.bar(
-                    df_resumo_mes, 
-                    x="Data", 
-                    y="Média Peso (kg)", 
-                    text_auto='.2f',
-                    template="plotly_dark",
-                    color="Média Peso (kg)",
-                    color_continuous_scale=["#00d2ff", "#8a2be2"]
-                )
-                fig_bar.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-                st.plotly_chart(fig_bar, use_container_width=True)
-
-        with col_g2:
-            st.write("#### Distribuição/Frequência dos Pesos")
-            if todos_pesos_mes:
-                df_pesos_frequentes = pd.DataFrame({"Peso": todos_pesos_mes})
-                df_pesos_frequentes["Peso_Arredondado"] = df_pesos_frequentes["Peso"].round(2).astype(str) + " kg"
-                contagem_pesos = df_pesos_frequentes["Peso_Arredondado"].value_counts().reset_index()
-                contagem_pesos.columns = ["Peso", "Quantidade"]
-
-                fig_pizza = px.pie(
-                    contagem_pesos, 
-                    names="Peso", 
-                    values="Quantidade", 
-                    hole=0.4,
-                    template="plotly_dark",
-                    color_discrete_sequence=['#00d2ff', '#8a2be2', '#3a86ff', '#8338ec', '#ff007f']
-                )
-                fig_pizza.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-                st.plotly_chart(fig_pizza, use_container_width=True)
-
-# ---------------------------------------------------------
-# PÁGINA 3: NOVA ABA
-# ---------------------------------------------------------
-elif menu_opcao == "➕ Nova Aba":
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.write("### ➕ Criar Nova Aba / Novo Dia de Produção")
-    
-    with st.form("form_nova_aba"):
-        nova_data_nome = st.text_input("Digite a data ou nome para a nova aba (Ex: 18-08-2026):")
-        btn_criar = st.form_submit_button("Criar Nova Aba na Planilha")
-        
-        if btn_criar:
-            if nova_data_nome.strip():
-                try:
-                    payload = {"action": "criar_aba", "nome_aba": nova_data_nome.strip()}
-                    res = requests.post(URL_SCRIPT, json=payload)
-                    st.success(f"✅ Comando enviado! A aba '{nova_data_nome}' foi criada com sucesso.")
-                    st.cache_data.clear()
-                except Exception as e:
-                    st.error(f"Erro ao tentar criar a aba: {e}")
+        with a:
+            st.markdown("<div class='section-title'>Evolução dos Pesos</div><div class='section-subtitle'>Acompanhamento dos registros ao longo do dia</div>", unsafe_allow_html=True)
+            if not df.empty:
+                dfg = df.reset_index(drop=True).copy()
+                dfg["Registro"] = dfg.index + 1
+                fig = px.line(dfg, x="Registro", y="Peso (kg)", markers=True)
+                fig.update_traces(line_color="#3d8cff", marker_color="#a16bff", line_width=3)
+                st.plotly_chart(grafico_layout(fig), use_container_width=True)
             else:
-                st.warning("⚠️ Informe um nome de aba válido.")
+                st.info("Sem dados suficientes para gerar o gráfico.")
+
+        with b:
+            st.markdown("<div class='section-title'>Resumo do Dia</div><div class='section-subtitle'>Indicadores principais</div>", unsafe_allow_html=True)
+            peso_total = float(df["Peso (kg)"].sum()) if not df.empty else 0
+            media = float(df["Peso (kg)"].mean()) if not df.empty else 0
+            menor = float(df["Peso (kg)"].min()) if not df.empty else 0
+            maior = float(df["Peso (kg)"].max()) if not df.empty else 0
+
+            st.markdown(
+                f"""
+                <div class="panel">
+                    <div style="font-size:1.8rem;font-family:Orbitron;font-weight:700;color:#58b7ff;">{peso_total:.2f} kg</div>
+                    <div style="color:#7f8da4;font-size:.75rem;">peso total registrado</div>
+                    <hr style="border-color:rgba(90,120,180,.12);">
+                    <div style="display:flex;justify-content:space-between;margin:9px 0;"><span style="color:#8290a7;">Média</span><b>{media:.2f} kg</b></div>
+                    <div style="display:flex;justify-content:space-between;margin:9px 0;"><span style="color:#8290a7;">Maior</span><b>{maior:.2f} kg</b></div>
+                    <div style="display:flex;justify-content:space-between;margin:9px 0;"><span style="color:#8290a7;">Menor</span><b>{menor:.2f} kg</b></div>
+                    <div style="display:flex;justify-content:space-between;margin:9px 0;"><span style="color:#8290a7;">Registros</span><b>{len(df)}</b></div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+
+# ---------------------------------------------------------
+# GRÁFICOS E ANÁLISES
+# ---------------------------------------------------------
+elif menu == "📊  Gráficos e Análises":
+    st.markdown("<div class='section-title'>Gráficos e Análises</div><div class='section-subtitle'>Transforme os registros da balança em informações visuais para tomada de decisão.</div>", unsafe_allow_html=True)
+
+    if not lista_abas:
+        st.info("Aguardando registros para gerar as análises.")
+    else:
+        dia = st.selectbox("Dia analisado", lista_abas, index=0)
+        df = obter_df_selecionado(dados_abas, dia)
+
+        mostrar_metricas(df)
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        if not df.empty:
+            c1, c2 = st.columns(2)
+
+            with c1:
+                dfg = df.reset_index(drop=True).copy()
+                dfg["Registro"] = dfg.index + 1
+                fig = px.area(dfg, x="Registro", y="Peso (kg)")
+                fig.update_traces(line_color="#3d8cff", fillcolor="rgba(61,140,255,.15)")
+                st.markdown("<div class='panel-title'>Peso ao longo do dia</div>", unsafe_allow_html=True)
+                st.plotly_chart(grafico_layout(fig), use_container_width=True)
+
+            with c2:
+                fig2 = px.histogram(df, x="Peso (kg)", nbins=8)
+                fig2.update_traces(marker_color="#7d4cff")
+                st.markdown("<div class='panel-title'>Distribuição dos pesos</div>", unsafe_allow_html=True)
+                st.plotly_chart(grafico_layout(fig2), use_container_width=True)
+
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            # Comparação entre dias
+            resumo = []
+            for nome, temp in dados_abas.items():
+                if not temp.empty:
+                    resumo.append({
+                        "Data": nome,
+                        "Peso total (kg)": temp["Peso (kg)"].sum(),
+                        "Média (kg)": temp["Peso (kg)"].mean(),
+                        "Lotes": len(temp),
+                    })
+
+            resumo_df = pd.DataFrame(resumo)
+
+            if not resumo_df.empty:
+                c3, c4 = st.columns(2)
+                with c3:
+                    fig3 = px.bar(resumo_df, x="Data", y="Peso total (kg)")
+                    fig3.update_traces(marker_color="#2f80ff")
+                    st.markdown("<div class='panel-title'>Peso total por dia</div>", unsafe_allow_html=True)
+                    st.plotly_chart(grafico_layout(fig3), use_container_width=True)
+
+                with c4:
+                    fig4 = px.bar(resumo_df, x="Data", y="Lotes")
+                    fig4.update_traces(marker_color="#8a35ff")
+                    st.markdown("<div class='panel-title'>Quantidade de lotes por dia</div>", unsafe_allow_html=True)
+                    st.plotly_chart(grafico_layout(fig4), use_container_width=True)
+
+# ---------------------------------------------------------
+# NOVA ABA
+# ---------------------------------------------------------
+else:
+    st.markdown("<div class='section-title'>Nova Aba</div><div class='section-subtitle'>Crie manualmente uma aba na planilha. O sistema também cria automaticamente a aba do dia quando a balança envia o primeiro registro.</div>", unsafe_allow_html=True)
+
+    with st.form("form_nova_aba"):
+        nome = st.text_input("Nome da nova aba", placeholder="Ex.: 18-08-2026")
+        enviar = st.form_submit_button("＋  Criar Nova Aba", use_container_width=True)
+
+        if enviar:
+            nome = nome.strip()
+            if not nome:
+                st.warning("Digite um nome para a aba.")
+            else:
+                try:
+                    resposta = requests.post(
+                        URL_SCRIPT,
+                        json={"action": "criar_aba", "nome_aba": nome},
+                        timeout=15,
+                    )
+                    resposta.raise_for_status()
+                    resultado = resposta.text
+                    st.success(f"Aba '{nome}' criada com sucesso.")
+                    st.cache_data.clear()
+                except Exception as erro:
+                    st.error(f"Não foi possível criar a aba: {erro}")
+
+st.markdown(
+    "<div class='footer'>AMIRA • Sistema de Monitoramento e Registro de Produção • SENAI</div>",
+    unsafe_allow_html=True,
+)
