@@ -22,7 +22,7 @@ st.set_page_config(
 # ---------------------------------------------------------
 # CONFIGURAÇÕES
 # ---------------------------------------------------------
-URL_SCRIPT = "https://script.google.com/macros/s/AKfycbz55nUlT6dBdbIJ15pWoNN4yNzLv0tC4XBxHkojHJTz_CB_HbsN6JTMUb_mw5338GgjMA/exec"
+URL_SCRIPT = "https://script.google.com/macros/s/AKfycby-Hb_1HMUpeWLlfldmIDXjP-OgiwXCTpXxsixygnkRISFGlawIuDlA0SRdXQjegnENyA/exec"
 TZ = "America/Sao_Paulo"
 
 # ---------------------------------------------------------
