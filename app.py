@@ -12,7 +12,7 @@ st.set_page_config(
 )
 
 # Sua URL do Google Apps Script
-URL_SCRIPT = "https://script.google.com/macros/s/AKfycbz55nUlT6dBdbIJ15pWoNN4yNzLv0tC4XBxHkojHJTz_CB_HbsN6JTMUb_mw5338GgjMA/exec"
+URL_SCRIPT = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQMSV65oJIbDvYnkxlgJGUlNyvxfXwQ5sBG_28QbZ_QjtnPNIipLvS1MSwfbmZThhu1TT1hEcFDmiIs/pub?output=csv"
 
 
 # ---------------------------------------------------------
