@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import requests
 
 # ---------------------------------------------------------
 # CONFIGURAÇÃO DA PÁGINA
@@ -10,23 +11,32 @@ st.set_page_config(
     layout="centered"
 )
 
-# Insira aqui a URL de exportação CSV da sua Planilha do Google ou da sua Web App
-# Para pegar a URL CSV do Google Sheets: Vá em Arquivo > Compartilhar > Publicar na Web > Escolha CSV
-URL_PLANILHA = "https://docs.google.com/spreadsheets/d/SEU_ID_DA_PLANILHA/export?format=csv"
+# Sua URL do Google Apps Script
+URL_SCRIPT = "https://script.google.com/macros/s/AKfycbz55nUlT6dBdbIJ15pWoNN4yNzLv0tC4XBxHkojHJTz_CB_HbsN6JTMUb_mw5338GgjMA/exec"
 
 
 # ---------------------------------------------------------
-# FUNÇÃO PARA CARREGAR OS DADOS
+# FUNÇÃO PARA CARREGAR OS DADOS (SEM CACHE PRESO)
 # ---------------------------------------------------------
-@st.cache_data(ttl=5)
+@st.cache_data(ttl=2)
 def carregar_dados():
     try:
-        # Lê os dados da planilha diretamente para um DataFrame
-        df = pd.read_csv(URL_PLANILHA)
+        # Faz a requisição HTTP para o seu Apps Script
+        resposta = requests.get(URL_SCRIPT)
+        
+        # Tenta interpretar como JSON/Lista de Dados
+        dados = resposta.json()
+        
+        # Converte para DataFrame do Pandas (A primeira linha vira o cabeçalho)
+        df = pd.DataFrame(dados[1:], columns=dados[0])
         return df
     except Exception as e:
-        # Retorna DataFrame vazio em caso de falha de conexão
-        return pd.DataFrame()
+        # Se o script não retornar JSON, tenta ler via CSV direto
+        try:
+            df = pd.read_csv(URL_SCRIPT)
+            return df
+        except:
+            return pd.DataFrame()
 
 
 # ---------------------------------------------------------
@@ -35,7 +45,7 @@ def carregar_dados():
 st.title("🧀 Controle de Produção e Pesagem")
 st.write("### Registros Sincronizados com o Google Sheets")
 
-# Botão que limpa o cache e força a atualização imediata dos dados
+# Botão de Atualizar que LIMPA O CACHE e força o recarregamento
 if st.button("🔄 Atualizar Dados da Balança"):
     st.cache_data.clear()
     st.rerun()
@@ -44,17 +54,17 @@ st.markdown("---")
 
 st.write("### 📋 Registros Recentes (Direto do Banco de Dados)")
 
-# Carrega os dados da planilha
+# Carrega os dados atualizados
 df = carregar_dados()
 
 if not df.empty:
     # Exibe a tabela na tela
     st.dataframe(df, use_container_width=True)
 
-    # Converte o DataFrame para CSV compatível com Excel (utf-8-sig)
+    # Converte para CSV para download no Excel
     csv = df.to_csv(index=False).encode('utf-8-sig')
 
-    # Botão para baixar o arquivo em Excel/CSV
+    # Botão para Baixar Planilha
     st.download_button(
         label="📥 Baixar Planilha para o Excel",
         data=csv,
@@ -62,4 +72,4 @@ if not df.empty:
         mime="text/csv",
     )
 else:
-    st.warning("Ainda não há dados carregados ou a URL da planilha precisa ser verificada.")
+    st.warning("Carregando ou aguardando novos registros da balança...")
