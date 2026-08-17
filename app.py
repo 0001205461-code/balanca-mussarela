@@ -1,5 +1,6 @@
 import io
 import os
+import re
 from datetime import datetime
 
 import pandas as pd
@@ -28,6 +29,8 @@ st.markdown(
 :root{--bg:#05070d;--panel:#0b0f1a;--panel2:#0f1422;--line:rgba(85,139,255,.24);--blue:#2f80ff;--cyan:#00d2ff;--purple:#8a35ff;--text:#f4f7ff;--muted:#8f9bb2}
 html,body,[class*="css"]{font-family:Inter,sans-serif}
 .stApp{background:radial-gradient(circle at 68% 12%,rgba(54,83,180,.13),transparent 28%),radial-gradient(circle at 96% 76%,rgba(138,53,255,.12),transparent 31%),#05070d;color:var(--text)}
+header[data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"]{display:none!important}
+[data-testid="stAppViewContainer"]{padding-top:0!important}
 .block-container{padding:1.25rem 1.6rem 2rem;max-width:1700px}
 section[data-testid="stSidebar"]{background:radial-gradient(circle at 50% 12%,rgba(50,117,255,.12),transparent 25%),linear-gradient(180deg,#070a12 0%,#080b14 100%)!important;border-right:1px solid rgba(76,122,255,.18)}
 section[data-testid="stSidebar"]>div{padding-top:1.05rem}
@@ -35,11 +38,11 @@ section[data-testid="stSidebar"]>div{padding-top:1.05rem}
 .brand-small{text-align:center;font-family:Orbitron,sans-serif;font-size:1.05rem;font-weight:800;letter-spacing:2px;margin-top:-7px}.brand-small span{color:var(--cyan)}
 .side-caption{text-align:center;color:var(--muted);font-size:.75rem;margin-top:4px}
 .nav-title{color:#6fdbff;font-size:.70rem;font-weight:800;letter-spacing:1.5px;margin:25px 0 8px}
-div[data-testid="stSidebar"] div[role="radiogroup"]{gap:8px}
-div[data-testid="stSidebar"] div[role="radiogroup"] label{background:linear-gradient(135deg,rgba(16,22,37,.95),rgba(10,14,25,.95))!important;border:1px solid rgba(76,122,255,.15)!important;border-radius:12px!important;padding:12px 14px!important;margin:0!important;color:#aeb8ca!important;transition:.22s ease!important}
+div[data-testid="stSidebar"] div[role="radiogroup"]{gap:10px;width:100%}
+div[data-testid="stSidebar"] div[role="radiogroup"] label{width:100%!important;min-height:52px;box-sizing:border-box;background:linear-gradient(135deg,rgba(16,22,37,.98),rgba(10,14,25,.98))!important;border:1px solid rgba(76,122,255,.20)!important;border-radius:10px!important;padding:14px 16px!important;margin:0!important;color:#d2dbed!important;transition:.22s ease!important;cursor:pointer!important}
 div[data-testid="stSidebar"] div[role="radiogroup"] label:hover{border-color:rgba(0,210,255,.65)!important;transform:translateX(3px)}
 div[data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"]{background:linear-gradient(90deg,rgba(24,112,255,.92),rgba(117,48,238,.92))!important;color:white!important;border-color:rgba(116,192,255,.7)!important;box-shadow:0 0 22px rgba(71,100,255,.25)}
-div[data-testid="stSidebar"] div[role="radiogroup"] label>div:first-child{display:none}
+div[data-testid="stSidebar"] div[role="radiogroup"] label>div:first-child,div[data-testid="stSidebar"] div[role="radiogroup"] input{position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;pointer-events:none!important}
 .sidebar-status{margin-top:55px;padding:14px;border:1px solid rgba(83,130,255,.20);border-radius:12px;background:rgba(10,14,25,.8)}
 .dot{display:inline-block;width:8px;height:8px;background:#20e889;border-radius:50%;box-shadow:0 0 10px #20e889;margin-right:7px}
 .top-title{font-size:1.8rem;font-weight:800;margin:0}.top-title span{color:#39a7ff}.top-subtitle{color:#a0aabd;font-size:.92rem;margin-top:4px}
@@ -72,6 +75,48 @@ def vazio():
     return pd.DataFrame(columns=["Data", "Hora", "Peso (kg)", "Lote"])
 
 
+def formatar_data_planilha(valor):
+    """Exibe datas ISO do Sheets em dd/mm/aaaa no fuso de São Paulo."""
+    if pd.isna(valor) or str(valor).strip() == "":
+        return None
+    texto = str(valor).strip()
+    try:
+        # Datas enviadas como ISO/UTC pelo Google Sheets devem respeitar Brasília.
+        if "T" in texto or texto.endswith("Z"):
+            data = pd.to_datetime(texto, utc=True, errors="coerce")
+            if not pd.isna(data):
+                return data.tz_convert(TZ).strftime("%d/%m/%Y")
+        data = pd.to_datetime(texto, errors="coerce", dayfirst=True)
+        if not pd.isna(data):
+            return data.strftime("%d/%m/%Y")
+    except (TypeError, ValueError):
+        pass
+    return texto
+
+
+def formatar_hora_planilha(valor):
+    """Converte horários do Sheets sem deslocar o marco de tempo do Excel."""
+    if pd.isna(valor) or str(valor).strip() == "":
+        return None
+    texto = str(valor).strip()
+    # O Sheets/Excel serializa uma hora isolada usando 1899-12-30. Nesse caso,
+    # 22:38:54 já é o horário mostrado na planilha, não um instante em UTC.
+    marco_excel = re.match(r"^1899-12-\d{2}T(\d{2}:\d{2}:\d{2})", texto)
+    if marco_excel:
+        return marco_excel.group(1)
+    hora = re.match(r"^(\d{1,2}:\d{2}(?::\d{2})?)$", texto)
+    if hora:
+        partes = hora.group(1).split(":")
+        return f"{int(partes[0]):02d}:{partes[1]}:{partes[2] if len(partes) == 3 else '00'}"
+    try:
+        data = pd.to_datetime(texto, utc=True, errors="coerce")
+        if not pd.isna(data):
+            return data.tz_convert(TZ).strftime("%H:%M:%S")
+    except (TypeError, ValueError):
+        pass
+    return texto
+
+
 def normalizar_colunas(df: pd.DataFrame) -> pd.DataFrame:
     if df is None or df.empty:
         return vazio()
@@ -92,6 +137,8 @@ def normalizar_colunas(df: pd.DataFrame) -> pd.DataFrame:
         if col not in df.columns:
             df[col] = None
     df["Peso (kg)"] = pd.to_numeric(df["Peso (kg)"], errors="coerce")
+    df["Data"] = df["Data"].map(formatar_data_planilha)
+    df["Hora"] = df["Hora"].map(formatar_hora_planilha)
     return df[["Data", "Hora", "Peso (kg)", "Lote"]].dropna(subset=["Peso (kg)"], how="all")
 
 
@@ -227,8 +274,8 @@ else:
 # SIDEBAR
 # =========================================================
 with st.sidebar:
-    if os.path.exists("logo.jpg"):
-        st.image("logo.jpg", use_container_width=True)
+    if os.path.exists("logo.png"):
+        st.image("logo.png", use_container_width=True)
     st.markdown("<div class='brand-small'>Sistema <span>AMIRA</span></div><div class='side-caption'>Monitoramento • Automação • Precisão</div>", unsafe_allow_html=True)
     st.markdown("<div class='nav-title'>MENU DE NAVEGAÇÃO</div>", unsafe_allow_html=True)
     menu = st.radio("Menu", ["📋  Registro e Dados", "📊  Gráficos e Análises", "＋  Nova Aba"], label_visibility="collapsed")
