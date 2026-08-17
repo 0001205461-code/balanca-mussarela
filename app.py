@@ -1,54 +1,65 @@
 import streamlit as st
 import pandas as pd
-from datetime import datetime
 
-# Configuração da página da Web
-st.set_page_config(page_title="Controle de Pesagem - Mussarela", page_icon="🧀", layout="centered")
+# ---------------------------------------------------------
+# CONFIGURAÇÃO DA PÁGINA
+# ---------------------------------------------------------
+st.set_page_config(
+    page_title="Controle de Produção e Pesagem",
+    page_icon="🧀",
+    layout="centered"
+)
 
-st.title("🧀 Controle de Produção e Pesagem")
-st.subheader("Registros Sincronizados com o Google Sheets")
+# Insira aqui a URL de exportação CSV da sua Planilha do Google ou da sua Web App
+# Para pegar a URL CSV do Google Sheets: Vá em Arquivo > Compartilhar > Publicar na Web > Escolha CSV
+URL_PLANILHA = "https://docs.google.com/spreadsheets/d/SEU_ID_DA_PLANILHA/export?format=csv"
 
-# ⚠️ SUBSTITUA O LINK ABAIXO PELO LINK DE COMPARTILHAMENTO DA SUA PLANILHA!
-# Você deve ir na sua planilha do Google, clicar em "Compartilhar", colocar como "Qualquer pessoa com o link pode ler", copiar o link e colar aqui.
-LINK_DA_PLANILHA = "https://docs.google.com/spreadsheets/d/1lx5pbPRlsT9BH4Z9N3cI1apf7UBc1u3q79TeNN_T-uA/edit?usp=sharing"
 
-# Função para converter o link normal da planilha em um link de download de dados
-def converter_link_csv(link):
+# ---------------------------------------------------------
+# FUNÇÃO PARA CARREGAR OS DADOS
+# ---------------------------------------------------------
+@st.cache_data(ttl=5)
+def carregar_dados():
     try:
-        id_planilha = link.split("/d/")[1].split("/")[0]
-        return f"https://docs.google.com/spreadsheets/d/{id_planilha}/export?format=csv"
-    except:
-        return None
+        # Lê os dados da planilha diretamente para um DataFrame
+        df = pd.read_csv(URL_PLANILHA)
+        return df
+    except Exception as e:
+        # Retorna DataFrame vazio em caso de falha de conexão
+        return pd.DataFrame()
 
-url_csv = converter_link_csv(LINK_DA_PLANILHA)
 
-# Botão de Atualização
+# ---------------------------------------------------------
+# INTERFACE DO STREAMLIT
+# ---------------------------------------------------------
+st.title("🧀 Controle de Produção e Pesagem")
+st.write("### Registros Sincronizados com o Google Sheets")
+
+# Botão que limpa o cache e força a atualização imediata dos dados
 if st.button("🔄 Atualizar Dados da Balança"):
+    st.cache_data.clear()
     st.rerun()
 
 st.markdown("---")
 
-st.markdown("### 📋 Registros Recentes (Direto do Banco de Dados)")
+st.write("### 📋 Registros Recentes (Direto do Banco de Dados)")
 
-if url_csv:
-    try:
-        # Lê os dados da planilha do Google em tempo real
-        df = pd.read_csv(url_csv)
-        
-        if not df.empty:
-            st.dataframe(df.tail(20), use_container_width=True) # Mostra os últimos 20 registros
-            
-            # Botão de download do Excel
-            csv_dados = df.to_csv(index=False, sep=";").encode('utf-8-sig')
-            st.download_button(
-                label="📥 Baixar Planilha para o Excel",
-                data=csv_dados,
-                file_name=f"pesagem_mussarela_{datetime.now().strftime('%Y-%m-%d')}.csv",
-                mime="text/csv",
-            )
-        else:
-            st.info("A planilha do Google está vazia. Aguardando dados do Arduino...")
-    except Exception as e:
-        st.error("Erro ao conectar com a Planilha do Google. Verifique se o link está correto e público.")
+# Carrega os dados da planilha
+df = carregar_dados()
+
+if not df.empty:
+    # Exibe a tabela na tela
+    st.dataframe(df, use_container_width=True)
+
+    # Converte o DataFrame para CSV compatível com Excel (utf-8-sig)
+    csv = df.to_csv(index=False).encode('utf-8-sig')
+
+    # Botão para baixar o arquivo em Excel/CSV
+    st.download_button(
+        label="📥 Baixar Planilha para o Excel",
+        data=csv,
+        file_name="Controle_de_Pesagem_Mussarela.csv",
+        mime="text/csv",
+    )
 else:
-    st.warning("Por favor, configure o link da sua planilha do Google no código.")
+    st.warning("Ainda não há dados carregados ou a URL da planilha precisa ser verificada.")
