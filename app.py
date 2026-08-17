@@ -8,12 +8,12 @@ import os
 # CONFIGURAÇÃO VISUAL - IDENTITY AMIRA (DARK / NEON TECH)
 # ---------------------------------------------------------
 st.set_page_config(
-    page_title="AMIRA - Controle de Pesagem",
+    page_title="AMIRA",
     page_icon="⚡",
     layout="wide"
 )
 
-# Estilização CSS com a paleta da AMIRA
+# Estilização CSS personalizada AMIRA
 st.markdown("""
     <style>
     /* Fundo da aplicação */
@@ -63,6 +63,28 @@ st.markdown("""
         transform: translateY(-2px);
     }
 
+    /* Abas / Menu Superior (Tabs) */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 12px;
+        background-color: #131521;
+        padding: 8px;
+        border-radius: 10px;
+        border: 1px solid #8a2be2;
+    }
+    .stTabs [data-baseweb="tab"] {
+        height: 50px;
+        white-space: pre-wrap;
+        background-color: #0b0c12;
+        border-radius: 8px;
+        color: #a0aab8;
+        font-weight: 600;
+    }
+    .stTabs [aria-selected="true"] {
+        background: linear-gradient(90deg, #00a2ff 0%, #8a2be2 100%) !important;
+        color: #ffffff !important;
+        font-weight: bold;
+    }
+
     /* Selectbox e Rótulos */
     .stSelectbox label {
         color: #00a2ff !important;
@@ -76,15 +98,14 @@ st.markdown("""
         border: 1px solid #8a2be2;
     }
     
-    /* Título e Subtítulos */
+    /* Título */
     h1 {
         background: linear-gradient(90deg, #ffffff 30%, #00a2ff 70%, #8a2be2 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         font-weight: 800;
-    }
-    h2, h3, h4 {
-        color: #ffffff !important;
+        font-size: 3rem !important;
+        margin-bottom: 0px;
     }
     
     /* Tabelas em modo Dark */
@@ -112,14 +133,15 @@ def carregar_dados_todas_abas():
         for nome_aba, conteudo in dados_json.items():
             if len(conteudo) > 1:
                 df = pd.DataFrame(conteudo[1:], columns=conteudo[0])
-                df["Peso"] = pd.to_numeric(df["Peso"], errors='coerce')
+                if "Peso" in df.columns:
+                    df["Peso"] = pd.to_numeric(df["Peso"], errors='coerce')
                 dict_dfs[nome_aba] = df
         return dict_dfs
     except Exception as e:
         return {}
 
 # ---------------------------------------------------------
-# LOGO NA BARRA LATERAL (SIDEBAR)
+# BARRA LATERAL (SIDEBAR)
 # ---------------------------------------------------------
 with st.sidebar:
     if os.path.exists("logo.jpg"):
@@ -130,25 +152,16 @@ with st.sidebar:
         st.image(URL_LOGO, use_container_width=True)
         
     st.markdown("### **AMIRA System**")
-    st.caption("Tecnologia e Inteligência em Pesagem")
+    st.caption("Tecnologia e Inteligência")
     st.markdown("---")
 
 # ---------------------------------------------------------
-# CABEÇALHO DO APLICATIVO COM A LOGO
+# CABEÇALHO DA PÁGINA
 # ---------------------------------------------------------
-col_logo, col_title, col_btn = st.columns([1, 3, 1])
-
-with col_logo:
-    if os.path.exists("logo.jpg"):
-        st.image("logo.jpg", width=110)
-    elif os.path.exists("logo.png"):
-        st.image("logo.png", width=110)
-    else:
-        st.image(URL_LOGO, width=110)
+col_title, col_btn = st.columns([4, 1])
 
 with col_title:
-    st.title("AMIRA — Gestão & Pesagem")
-    st.caption("Monitoramento e análise preditiva de produção em tempo real")
+    st.title("AMIRA")
 
 with col_btn:
     st.write("")
@@ -163,121 +176,142 @@ if not dados_abas:
     st.stop()
 
 # ---------------------------------------------------------
-# NAVEGAÇÃO DE ABAS POR DATA
+# MENU POR NAVEGAÇÃO DE ABAS
 # ---------------------------------------------------------
-st.markdown("---")
-lista_datas = list(dados_abas.keys())
-data_selecionada = st.selectbox("📅 Selecionar Dia de Produção (Aba Ativa):", options=lista_datas, index=0)
-
-df_dia = dados_abas[data_selecionada]
+tab_registros, tab_graficos, tab_nova_aba = st.tabs(["📋 Registros & Dados", "📊 Gráficos & Análises", "➕ Nova Aba"])
 
 # ---------------------------------------------------------
-# CARDS DE MÉTRICAS DO DIA
+# ABA 1: REGISTROS & DADOS
 # ---------------------------------------------------------
-col1, col2, col3 = st.columns(3)
+with tab_registros:
+    st.markdown("<br>", unsafe_allow_html=True)
+    lista_datas = list(dados_abas.keys())
+    data_selecionada = st.selectbox("📅 Selecionar Dia de Produção:", options=lista_datas, index=0)
 
-total_caixas = len(df_dia)
-media_peso = df_dia["Peso"].mean() if not df_dia.empty else 0
-peso_total_dia = df_dia["Peso"].sum() if not df_dia.empty else 0
+    df_dia = dados_abas[data_selecionada]
 
-with col1:
-    st.metric(label="📦 Caixas Pesadas", value=f"{total_caixas}")
+    # Cards de Métricas
+    col1, col2, col3 = st.columns(3)
+    total_caixas = len(df_dia)
+    media_peso = df_dia["Peso"].mean() if ("Peso" in df_dia.columns and not df_dia.empty) else 0
+    peso_total_dia = df_dia["Peso"].sum() if ("Peso" in df_dia.columns and not df_dia.empty) else 0
 
-with col2:
-    st.metric(label="⚖️ Média de Peso Diária", value=f"{media_peso:.2f} kg")
+    with col1:
+        st.metric(label="📦 Caixas Pesadas", value=f"{total_caixas}")
+    with col2:
+        st.metric(label="⚖️ Média de Peso Diária", value=f"{media_peso:.2f} kg")
+    with col3:
+        st.metric(label="📊 Volume Total Processado", value=f"{peso_total_dia:.2f} kg")
 
-with col3:
-    st.metric(label="📊 Volume Total Processado", value=f"{peso_total_dia:.2f} kg")
+    st.markdown("---")
+    st.write(f"### Tabela de Registros — Data: **{data_selecionada}**")
+    st.dataframe(df_dia, use_container_width=True, height=400)
+
+    # Botão de exportação
+    csv_data = df_dia.to_csv(index=False).encode('utf-8-sig')
+    st.download_button(
+        label=f"📥 Exportar Planilha ({data_selecionada})",
+        data=csv_data,
+        file_name=f"AMIRA_{data_selecionada}.csv",
+        mime="text/csv"
+    )
 
 # ---------------------------------------------------------
-# VISUALIZAÇÃO DOS PESOS DO DIA (TABELA E GRÁFICO)
+# ABA 2: GRÁFICOS & ANÁLISES
 # ---------------------------------------------------------
-st.markdown("---")
-st.subheader(f"📋 Registros Operacionais — Data: {data_selecionada}")
+with tab_graficos:
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.write("### 📈 Visualizações Gráficas e Análise de Produção")
+    
+    # Gráfico 1: Linha de variação do dia selecionado
+    lista_datas = list(dados_abas.keys())
+    data_grafico = st.selectbox("📊 Selecionar dia para ver o gráfico de oscilação:", options=lista_datas, index=0)
+    df_graf = dados_abas[data_grafico]
 
-col_left, col_right = st.columns([1, 1])
-
-with col_left:
-    st.write("#### Tabela de Registros")
-    st.dataframe(df_dia, use_container_width=True)
-
-with col_right:
-    st.write("#### Variação do Peso em Tempo Real")
-    if not df_dia.empty:
+    if not df_graf.empty and "Peso" in df_graf.columns and "Hora" in df_graf.columns:
         fig_linha = px.line(
-            df_dia, 
+            df_graf, 
             x="Hora", 
             y="Peso", 
             markers=True,
-            title="Oscilação por Unidade Pesada",
+            title=f"Oscilação por Unidade Pesada ({data_grafico})",
             template="plotly_dark"
         )
         fig_linha.update_traces(line_color='#00a2ff', marker=dict(size=8, color='#8a2be2'))
         fig_linha.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
         st.plotly_chart(fig_linha, use_container_width=True)
 
-# ---------------------------------------------------------
-# ANÁLISE MENSAL DE 35 DIAS
-# ---------------------------------------------------------
-st.markdown("---")
-st.subheader("📈 Inteligência Analítica dos Últimos 35 Dias")
+    st.markdown("---")
+    
+    # Gráficos Comparativos Gerais (Histórico)
+    st.write("### 📊 Análise Comparativa Entre os Dias")
+    resumo_dias = []
+    todos_pesos_mes = []
 
-resumo_dias = []
-todos_pesos_mes = []
+    for data_nome, df_temp in dados_abas.items():
+        if not df_temp.empty and "Peso" in df_temp.columns:
+            cnt = len(df_temp)
+            med = df_temp["Peso"].mean()
+            resumo_dias.append({"Data": data_nome, "Média Peso (kg)": med, "Qtd Caixas": cnt})
+            todos_pesos_mes.extend(df_temp["Peso"].dropna().tolist())
 
-for data_nome, df_temp in dados_abas.items():
-    if not df_temp.empty:
-        cnt = len(df_temp)
-        med = df_temp["Peso"].mean()
-        resumo_dias.append({"Data": data_nome, "Média Peso (kg)": med, "Qtd Caixas": cnt})
-        todos_pesos_mes.extend(df_temp["Peso"].dropna().tolist())
+    df_resumo_mes = pd.DataFrame(resumo_dias)
 
-df_resumo_mes = pd.DataFrame(resumo_dias)
+    col_g1, col_g2 = st.columns(2)
 
-col_mes_1, col_mes_2 = st.columns(2)
+    with col_g1:
+        st.write("#### Média de Peso por Dia")
+        if not df_resumo_mes.empty:
+            fig_bar = px.bar(
+                df_resumo_mes, 
+                x="Data", 
+                y="Média Peso (kg)", 
+                text_auto='.2f',
+                template="plotly_dark",
+                color="Média Peso (kg)",
+                color_continuous_scale=["#00a2ff", "#8a2be2"]
+            )
+            fig_bar.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(fig_bar, use_container_width=True)
 
-with col_mes_1:
-    st.write("#### Peso Médio Comparativo por Dia")
-    if not df_resumo_mes.empty:
-        fig_bar = px.bar(
-            df_resumo_mes, 
-            x="Data", 
-            y="Média Peso (kg)", 
-            text_auto='.2f',
-            template="plotly_dark",
-            color="Média Peso (kg)",
-            color_continuous_scale=["#00a2ff", "#8a2be2"]
-        )
-        fig_bar.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(fig_bar, use_container_width=True)
+    with col_g2:
+        st.write("#### Distribuição/Frequência dos Pesos")
+        if todos_pesos_mes:
+            df_pesos_frequentes = pd.DataFrame({"Peso": todos_pesos_mes})
+            df_pesos_frequentes["Peso_Arredondado"] = df_pesos_frequentes["Peso"].round(2).astype(str) + " kg"
+            contagem_pesos = df_pesos_frequentes["Peso_Arredondado"].value_counts().reset_index()
+            contagem_pesos.columns = ["Peso", "Quantidade"]
 
-with col_mes_2:
-    st.write("#### Recorrência dos Pesos no Mês")
-    if todos_pesos_mes:
-        df_pesos_frequentes = pd.DataFrame({"Peso": todos_pesos_mes})
-        df_pesos_frequentes["Peso_Arredondado"] = df_pesos_frequentes["Peso"].round(2).astype(str) + " kg"
-        contagem_pesos = df_pesos_frequentes["Peso_Arredondado"].value_counts().reset_index()
-        contagem_pesos.columns = ["Peso", "Quantidade"]
-
-        fig_pizza = px.pie(
-            contagem_pesos, 
-            names="Peso", 
-            values="Quantidade", 
-            hole=0.4,
-            template="plotly_dark",
-            color_discrete_sequence=['#00a2ff', '#8a2be2', '#3a86ff', '#8338ec', '#ff007f']
-        )
-        fig_pizza.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
-        st.plotly_chart(fig_pizza, use_container_width=True)
+            fig_pizza = px.pie(
+                contagem_pesos, 
+                names="Peso", 
+                values="Quantidade", 
+                hole=0.4,
+                template="plotly_dark",
+                color_discrete_sequence=['#00a2ff', '#8a2be2', '#3a86ff', '#8338ec', '#ff007f']
+            )
+            fig_pizza.update_layout(paper_bgcolor='rgba(0,0,0,0)', plot_bgcolor='rgba(0,0,0,0)')
+            st.plotly_chart(fig_pizza, use_container_width=True)
 
 # ---------------------------------------------------------
-# EXPORTAÇÃO DE DADOS
+# ABA 3: NOVA ABA / CRIAR DIA
 # ---------------------------------------------------------
-st.markdown("---")
-csv_data = df_dia.to_csv(index=False).encode('utf-8-sig')
-st.download_button(
-    label=f"📥 Exportar Planilha de {data_selecionada} (Excel / CSV)",
-    data=csv_data,
-    file_name=f"AMIRA_Pesagens_{data_selecionada}.csv",
-    mime="text/csv"
-)
+with tab_nova_aba:
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.write("### ➕ Criar Nova Aba / Novo Dia de Produção")
+    
+    with st.form("form_nova_aba"):
+        nova_data_nome = st.text_input("Digite a data ou nome para a nova aba (Ex: 18-08-2026):")
+        btn_criar = st.form_submit_button("Criar Nova Aba na Planilha")
+        
+        if btn_criar:
+            if nova_data_nome.strip():
+                try:
+                    payload = {"action": "criar_aba", "nome_aba": nova_data_nome.strip()}
+                    res = requests.post(URL_SCRIPT, json=payload)
+                    st.success(f"✅ Comando enviado! A aba '{nova_data_nome}' foi criada com sucesso.")
+                    st.cache_data.clear()
+                except Exception as e:
+                    st.error(f"Erro ao tentar criar a aba: {e}")
+            else:
+                st.warning("⚠️ Informe um nome de aba válido.")
