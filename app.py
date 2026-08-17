@@ -97,6 +97,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 URL_SCRIPT = "https://script.google.com/macros/s/AKfycbz55nUlT6dBdbIJ15pWoNN4yNzLv0tC4XBxHkojHJTz_CB_HbsN6JTMUb_mw5338GgjMA/exec"
+URL_LOGO = "https://i.postimg.cc/85y98G6p/amira-logo.jpg"
 
 # ---------------------------------------------------------
 # LEITURA DOS DADOS DAS ABAS
@@ -122,9 +123,12 @@ def carregar_dados_todas_abas():
 # ---------------------------------------------------------
 with st.sidebar:
     if os.path.exists("logo.jpg"):
-        st.image("logo.jpg", use_column_width=True)
+        st.image("logo.jpg", use_container_width=True)
     elif os.path.exists("logo.png"):
-        st.image("logo.png", use_column_width=True)
+        st.image("logo.png", use_container_width=True)
+    else:
+        st.image(URL_LOGO, use_container_width=True)
+        
     st.markdown("### **AMIRA System**")
     st.caption("Tecnologia e Inteligência em Pesagem")
     st.markdown("---")
@@ -139,6 +143,8 @@ with col_logo:
         st.image("logo.jpg", width=110)
     elif os.path.exists("logo.png"):
         st.image("logo.png", width=110)
+    else:
+        st.image(URL_LOGO, width=110)
 
 with col_title:
     st.title("AMIRA — Gestão & Pesagem")
