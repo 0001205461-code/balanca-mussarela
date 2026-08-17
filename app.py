@@ -29,8 +29,11 @@ st.markdown(
 :root{--bg:#05070d;--panel:#0b0f1a;--panel2:#0f1422;--line:rgba(85,139,255,.24);--blue:#2f80ff;--cyan:#00d2ff;--purple:#8a35ff;--text:#f4f7ff;--muted:#8f9bb2}
 html,body,[class*="css"]{font-family:Inter,sans-serif}
 .stApp{background:radial-gradient(circle at 68% 12%,rgba(54,83,180,.13),transparent 28%),radial-gradient(circle at 96% 76%,rgba(138,53,255,.12),transparent 31%),#05070d;color:var(--text)}
-header[data-testid="stHeader"], [data-testid="stToolbar"], [data-testid="stDecoration"]{display:none!important}
-[data-testid="stAppViewContainer"]{padding-top:0!important}
+/* O cabeçalho fica transparente: remove a faixa escura sem esconder o botão
+   que reabre a barra lateral quando ela é minimizada. */
+header[data-testid="stHeader"]{background:transparent!important}
+[data-testid="stToolbar"], [data-testid="stDecoration"]{display:none!important}
+[data-testid="stSidebarCollapsedControl"]{display:flex!important;position:fixed!important;top:.55rem!important;left:.7rem!important;z-index:100000!important;background:rgba(10,15,29,.92)!important;border:1px solid rgba(76,145,255,.65)!important;border-radius:9px!important;box-shadow:0 0 18px rgba(58,116,255,.28)!important}
 .block-container{padding:1.25rem 1.6rem 2rem;max-width:1700px}
 section[data-testid="stSidebar"]{background:radial-gradient(circle at 50% 12%,rgba(50,117,255,.12),transparent 25%),linear-gradient(180deg,#070a12 0%,#080b14 100%)!important;border-right:1px solid rgba(76,122,255,.18)}
 section[data-testid="stSidebar"]>div{padding-top:1.05rem}
