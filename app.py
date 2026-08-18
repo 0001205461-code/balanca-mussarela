@@ -48,6 +48,11 @@ div[data-testid="stSidebar"] div[role="radiogroup"] label{width:100%!important;m
 div[data-testid="stSidebar"] div[role="radiogroup"] label:hover{border-color:rgba(0,210,255,.65)!important;transform:translateX(3px)}
 div[data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"]{background:linear-gradient(90deg,rgba(24,112,255,.92),rgba(117,48,238,.92))!important;color:white!important;border-color:rgba(116,192,255,.7)!important;box-shadow:0 0 22px rgba(71,100,255,.25)}
 div[data-testid="stSidebar"] div[role="radiogroup"] label>div:first-child,div[data-testid="stSidebar"] div[role="radiogroup"] input{position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;pointer-events:none!important}
+/* Navegação: botões reais, largos e retangulares — sem radio buttons. */
+section[data-testid="stSidebar"] .stButton{width:100%!important;margin:0 0 10px!important}
+section[data-testid="stSidebar"] .stButton>button{width:100%!important;min-height:58px!important;padding:14px 16px!important;justify-content:flex-start!important;text-align:left!important;border-radius:10px!important;border:1px solid rgba(76,122,255,.24)!important;background:linear-gradient(135deg,rgba(16,22,37,.98),rgba(10,14,25,.98))!important;color:#dce6fa!important;font-size:.92rem!important;font-weight:750!important;box-shadow:none!important}
+section[data-testid="stSidebar"] .stButton>button:hover{border-color:rgba(0,210,255,.75)!important;transform:translateX(3px)!important;box-shadow:0 0 20px rgba(33,133,255,.20)!important}
+section[data-testid="stSidebar"] .stButton>button[kind="primary"]{background:linear-gradient(90deg,rgba(21,116,255,.98),rgba(112,49,235,.98))!important;color:white!important;border-color:rgba(138,201,255,.8)!important;box-shadow:0 0 22px rgba(71,100,255,.30)!important}
 .sidebar-status{margin-top:55px;padding:14px;border:1px solid rgba(83,130,255,.20);border-radius:12px;background:rgba(10,14,25,.8)}
 .dot{display:inline-block;width:8px;height:8px;background:#20e889;border-radius:50%;box-shadow:0 0 10px #20e889;margin-right:7px}
 .top-title{font-size:1.8rem;font-weight:800;margin:0}.top-title span{color:#39a7ff}.top-subtitle{color:#a0aabd;font-size:.92rem;margin-top:4px}
@@ -279,11 +284,25 @@ else:
 # SIDEBAR
 # =========================================================
 with st.sidebar:
+    # A PNG é usada em primeiro lugar (fundo transparente); a JPG antiga é
+    # mantida como reserva até a nova logo ser enviada ao repositório.
     if os.path.exists("logo.png"):
         st.image("logo.png", use_container_width=True)
+    elif os.path.exists("logo.jpg"):
+        st.image("logo.jpg", use_container_width=True)
     st.markdown("<div class='brand-small'>Sistema <span>AMIRA</span></div><div class='side-caption'>Monitoramento • Automação • Precisão</div>", unsafe_allow_html=True)
     st.markdown("<div class='nav-title'>MENU DE NAVEGAÇÃO</div>", unsafe_allow_html=True)
-    menu = st.radio("Menu", ["📋  Registro e Dados", "📊  Gráficos e Análises", "＋  Nova Aba"], label_visibility="collapsed")
+    opcoes_menu = ["📋  Registro e Dados", "📊  Gráficos e Análises", "＋  Nova Aba"]
+    menu = st.session_state.get("menu_amira", opcoes_menu[0])
+    for indice, opcao in enumerate(opcoes_menu):
+        if st.button(
+            opcao,
+            key=f"menu_amira_{indice}",
+            type="primary" if menu == opcao else "secondary",
+            use_container_width=True,
+        ):
+            st.session_state["menu_amira"] = opcao
+            st.rerun()
     st.markdown("<div class='sidebar-status'><div style='font-weight:800;'>Sistema AMIRA</div><div style='color:#7f8da4;font-size:.75rem;margin-top:5px;'><span class='dot'></span>Monitoramento ativo</div></div>", unsafe_allow_html=True)
     st.markdown("<div class='footer'>© 2026 AMIRA • SENAI<br>IoT • Automação • Precisão</div>", unsafe_allow_html=True)
 
