@@ -1,7 +1,7 @@
 import io
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pandas as pd
 import plotly.express as px
@@ -73,6 +73,9 @@ div[data-baseweb="select"]>div,div[data-baseweb="input"]>div{background:#0c111e!
 .stSelectbox label,.stTextInput label{color:#8cdfff!important;font-weight:700!important}
 .footer{color:#59677d;font-size:.68rem;text-align:center;padding:20px 0 0}
 .small-note{color:#6f7e96;font-size:.72rem}
+.automation-note{display:flex;align-items:center;gap:10px;margin:18px 0 8px;padding:13px 15px;border:1px solid rgba(73,215,154,.25);border-radius:11px;background:linear-gradient(90deg,rgba(19,66,55,.30),rgba(12,22,38,.65));color:#b8c8da;font-size:.80rem}.automation-note b{color:#53efa5}
+.history-status{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:.72rem;font-weight:800}.history-ok{color:#55efa7;background:rgba(30,125,79,.22);border:1px solid rgba(72,234,150,.28)}.history-pending{color:#ffcb68;background:rgba(126,83,21,.20);border:1px solid rgba(255,193,77,.28)}
+[data-testid="stExpander"]{border:1px solid rgba(83,130,255,.25)!important;border-radius:11px!important;background:rgba(10,15,27,.70)!important;margin-bottom:9px!important}[data-testid="stExpander"] summary{font-weight:750!important;color:#e9f1ff!important}
 </style>
 """,
     unsafe_allow_html=True,
@@ -172,10 +175,29 @@ def carregar_dados_todas_abas():
 
 
 def chave_aba(nome):
-    try:
-        return datetime.strptime(str(nome), "%d-%m-%Y")
-    except Exception:
-        return datetime.min
+    data = data_da_aba(nome)
+    return datetime.combine(data, datetime.min.time()) if data else datetime.min
+
+
+def data_da_aba(nome):
+    """Reconhece tanto abas 12-08-2026 quanto nomes com 2026-08-12."""
+    texto = str(nome)
+    for padrao, formato in [
+        (r"(?<!\d)(\d{2}-\d{2}-\d{4})(?!\d)", "%d-%m-%Y"),
+        (r"(?<!\d)(\d{4}-\d{2}-\d{2})(?!\d)", "%Y-%m-%d"),
+    ]:
+        encontrado = re.search(padrao, texto)
+        if encontrado:
+            try:
+                return datetime.strptime(encontrado.group(1), formato).date()
+            except ValueError:
+                pass
+    return None
+
+
+def rotulo_aba(nome):
+    data = data_da_aba(nome)
+    return data.strftime("%d/%m/%Y") if data else str(nome)
 
 
 def formatar_numero(valor):
@@ -292,7 +314,7 @@ with st.sidebar:
         st.image("logo.jpg", use_container_width=True)
     st.markdown("<div class='brand-small'>Sistema <span>AMIRA</span></div><div class='side-caption'>Monitoramento • Automação • Precisão</div>", unsafe_allow_html=True)
     st.markdown("<div class='nav-title'>MENU DE NAVEGAÇÃO</div>", unsafe_allow_html=True)
-    opcoes_menu = ["📋  Registro e Dados", "📊  Gráficos e Análises", "＋  Nova Aba"]
+    opcoes_menu = ["📋  Registro e Dados", "📊  Gráficos e Análises", "🗂  Histórico de Planilhas"]
     menu = st.session_state.get("menu_amira", opcoes_menu[0])
     for indice, opcao in enumerate(opcoes_menu):
         if st.button(
@@ -389,6 +411,8 @@ if menu == "📋  Registro e Dados":
             st.plotly_chart(ring, use_container_width=True, config={"displayModeBar": False})
             st.markdown(f"<div class='summary-row'><span>↗ Média por lote</span><b>{formatar_numero(media)} kg</b></div><div class='summary-row'><span>↑ Maior peso</span><b>{formatar_numero(maior)} kg</b></div><div class='summary-row'><span>↓ Menor peso</span><b>{formatar_numero(menor)} kg</b></div><div class='summary-row'><span>◉ Lotes registrados</span><b>{len(df)}</b></div></div>", unsafe_allow_html=True)
 
+        st.markdown("<div class='automation-note'>✓ <span><b>Novo dia automático:</b> a planilha do próximo dia é criada pela balança assim que a primeira pesagem é enviada. Não é preciso criar uma aba manualmente.</span></div>", unsafe_allow_html=True)
+
         # Visão Geral exatamente como na referência
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("<div class='panel-title' style='font-size:1.18rem'>Visão Geral</div>", unsafe_allow_html=True)
@@ -460,24 +484,41 @@ elif menu == "📊  Gráficos e Análises":
                 st.plotly_chart(grafico_layout(fig),use_container_width=True,config={"displayModeBar":False})
 
 # =========================================================
-# NOVA ABA
+# HISTÓRICO DE PLANILHAS
 # =========================================================
 else:
-    st.markdown("<div class='section-title'>Nova Aba</div><div class='section-subtitle'>Crie manualmente uma aba na planilha. As abas diárias continuam sendo criadas automaticamente pela balança.</div>", unsafe_allow_html=True)
-    with st.form("form_nova_aba"):
-        nome = st.text_input("Nome da nova aba", placeholder="Ex.: 18-08-2026")
-        enviar = st.form_submit_button("＋  Criar Nova Aba", use_container_width=True)
-        if enviar:
-            nome = nome.strip()
-            if not nome:
-                st.warning("Digite um nome para a aba.")
-            else:
-                try:
-                    resposta = requests.post(URL_SCRIPT, json={"action":"criar_aba","nome_aba":nome}, timeout=20)
-                    resposta.raise_for_status()
-                    st.success(resposta.text)
-                    st.cache_data.clear()
-                except Exception as erro:
-                    st.error(f"Não foi possível criar a aba: {erro}")
+    st.markdown("<div class='section-title'>Histórico de Planilhas</div><div class='section-subtitle'>Confira se cada dia já foi lançado. Clique na seta para ver os dados completos.</div>", unsafe_allow_html=True)
+    if not lista_abas:
+        st.info("Ainda não há planilhas lançadas.")
+    else:
+        abas_por_data = {}
+        for nome, temp in dados_abas.items():
+            data = data_da_aba(nome)
+            if data:
+                abas_por_data[data] = (nome, temp)
+
+        st.markdown("<div class='panel-title'>Conferência de lançamentos</div><div class='section-subtitle'>Os últimos 14 dias: verde significa que a planilha chegou ao sistema; amarelo indica que ela ainda não foi encontrada.</div>", unsafe_allow_html=True)
+        referencia = max([datetime.now().date(), *abas_por_data.keys()]) if abas_por_data else datetime.now().date()
+        status_colunas = st.columns(2)
+        for indice in range(14):
+            data = referencia - timedelta(days=indice)
+            encontrada = data in abas_por_data and not abas_por_data[data][1].empty
+            classe = "history-ok" if encontrada else "history-pending"
+            texto = "✓ OK — lançada" if encontrada else "! Pendente"
+            with status_colunas[indice % 2]:
+                st.markdown(f"<div class='panel' style='padding:11px 13px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center'><b>{data.strftime('%d/%m/%Y')}</b><span class='history-status {classe}'>{texto}</span></div>", unsafe_allow_html=True)
+
+        st.markdown("<br><div class='panel-title'>Planilhas lançadas</div><div class='section-subtitle'>Cada item representa um dia registrado no sistema.</div>", unsafe_allow_html=True)
+        for nome in sorted(lista_abas, key=chave_aba, reverse=True):
+            temp = dados_abas.get(nome, vazio())
+            rotulo = rotulo_aba(nome)
+            with st.expander(f"{rotulo}   •   ✓ OK — planilha lançada", expanded=False):
+                st.caption(f"{len(temp)} registros encontrados para {rotulo}.")
+                if temp.empty:
+                    st.info("A planilha existe, mas ainda não possui registros.")
+                else:
+                    tabela_historico = temp.copy().reset_index(drop=True)
+                    tabela_historico.insert(0, "#", tabela_historico.index + 1)
+                    st.dataframe(tabela_historico, use_container_width=True, hide_index=True, column_config={"#": st.column_config.NumberColumn("#", width="small"), "Peso (kg)": st.column_config.NumberColumn("Peso (kg)", format="%.2f")})
 
 st.markdown("<div class='footer'>AMIRA • Sistema de Monitoramento e Registro de Produção • SENAI</div>", unsafe_allow_html=True)
