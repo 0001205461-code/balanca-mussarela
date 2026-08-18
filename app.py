@@ -88,6 +88,24 @@ def vazio():
     return pd.DataFrame(columns=["Data", "Hora", "Peso (kg)", "Lote"])
 
 
+def gerar_planilhas_simuladas():
+    """Dados de demonstração locais; nunca são enviados à planilha real."""
+    pesos = [0.42, 0.38, 0.45, 0.41, 0.39, 0.47, 0.44, 0.40]
+    resultado = {}
+    for deslocamento in range(1, 6):
+        dia = datetime.now().date() - timedelta(days=deslocamento)
+        linhas = []
+        for indice, peso in enumerate(pesos):
+            linhas.append({
+                "Data": dia.strftime("%d/%m/%Y"),
+                "Hora": f"{8 + indice:02d}:{(indice * 7) % 60:02d}:00",
+                "Peso (kg)": round(peso + deslocamento * 0.01, 2),
+                "Lote": f"SIM-{dia.strftime('%d%m')}-{indice + 1:02d}",
+            })
+        resultado[dia.strftime("%d-%m-%Y")] = pd.DataFrame(linhas)
+    return resultado
+
+
 def formatar_data_planilha(valor):
     """Exibe datas ISO do Sheets em dd/mm/aaaa no fuso de São Paulo."""
     if pd.isna(valor) or str(valor).strip() == "":
@@ -294,6 +312,10 @@ except Exception as erro:
     dados_abas = {}
     erro_api = str(erro)
 
+if st.session_state.get("modo_simulacao_amira", False):
+    # Dados reais continuam intactos; a simulação só complementa a tela atual.
+    dados_abas = {**dados_abas, **gerar_planilhas_simuladas()}
+
 lista_abas = sorted(dados_abas.keys(), key=chave_aba, reverse=True)
 if lista_abas:
     dia_atual = st.session_state.get("dia_selecionado", lista_abas[0])
@@ -497,16 +519,42 @@ else:
             if data:
                 abas_por_data[data] = (nome, temp)
 
-        st.markdown("<div class='panel-title'>Conferência de lançamentos</div><div class='section-subtitle'>Os últimos 14 dias: verde significa que a planilha chegou ao sistema; amarelo indica que ela ainda não foi encontrada.</div>", unsafe_allow_html=True)
+        acao_simulacao, texto_simulacao = st.columns([1.25, 3.75])
+        with acao_simulacao:
+            if st.button("◈  Carregar simulação", key="ativar_simulacao", use_container_width=True):
+                st.session_state["modo_simulacao_amira"] = True
+                st.rerun()
+        with texto_simulacao:
+            st.caption("Cria cinco dias de exemplo apenas nesta tela. Não envia nem altera dados da planilha Google.")
+
+        st.markdown("<div class='panel-title'>Conferência de lançamentos</div><div class='section-subtitle'>Clique na seta de um dia para abrir somente a planilha dele. Em um dia pendente, use “Marcar como enviado” após o trabalhador encaminhá-la.</div>", unsafe_allow_html=True)
         referencia = max([datetime.now().date(), *abas_por_data.keys()]) if abas_por_data else datetime.now().date()
-        status_colunas = st.columns(2)
         for indice in range(14):
             data = referencia - timedelta(days=indice)
-            encontrada = data in abas_por_data and not abas_por_data[data][1].empty
-            classe = "history-ok" if encontrada else "history-pending"
-            texto = "✓ OK — lançada" if encontrada else "! Pendente"
-            with status_colunas[indice % 2]:
-                st.markdown(f"<div class='panel' style='padding:11px 13px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center'><b>{data.strftime('%d/%m/%Y')}</b><span class='history-status {classe}'>{texto}</span></div>", unsafe_allow_html=True)
+            nome, temp = abas_por_data.get(data, (None, vazio()))
+            encontrada = nome is not None and not temp.empty
+            enviados = st.session_state.setdefault("dias_enviados_amira", set())
+            confirmado = data.isoformat() in enviados
+            if encontrada:
+                texto_status = "✓ OK — lançada"
+            elif confirmado:
+                texto_status = "✓ Enviado"
+            else:
+                texto_status = "! Pendente"
+            with st.expander(f"{data.strftime('%d/%m/%Y')}   •   {texto_status}", expanded=False):
+                if encontrada:
+                    tabela_dia = temp.copy().reset_index(drop=True)
+                    tabela_dia.insert(0, "#", tabela_dia.index + 1)
+                    st.caption(f"Planilha completa de {data.strftime('%d/%m/%Y')} — {len(tabela_dia)} registros.")
+                    st.dataframe(tabela_dia, use_container_width=True, hide_index=True, column_config={"#": st.column_config.NumberColumn("#", width="small"), "Peso (kg)": st.column_config.NumberColumn("Peso (kg)", format="%.2f")})
+                else:
+                    st.info("Nenhuma planilha desse dia foi encontrada no sistema.")
+                    if confirmado:
+                        st.success("Marcada como enviada nesta sessão.")
+                    elif st.button("✓  Marcar como enviado", key=f"enviar_{data.isoformat()}"):
+                        enviados.add(data.isoformat())
+                        st.session_state["dias_enviados_amira"] = enviados
+                        st.rerun()
 
         st.markdown("<br><div class='panel-title'>Planilhas lançadas</div><div class='section-subtitle'>Cada item representa um dia registrado no sistema.</div>", unsafe_allow_html=True)
         for nome in sorted(lista_abas, key=chave_aba, reverse=True):
