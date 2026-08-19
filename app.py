@@ -80,7 +80,6 @@ div[data-baseweb="select"]>div,div[data-baseweb="input"]>div{background:#0c111e!
 def vazio():
     return pd.DataFrame(columns=["Data", "Hora", "Peso (kg)", "Lote"])
 
-
 def formatar_data_planilha(valor):
     if pd.isna(valor) or str(valor).strip() == "":
         return None
@@ -96,7 +95,6 @@ def formatar_data_planilha(valor):
     except (TypeError, ValueError):
         pass
     return texto
-
 
 def formatar_hora_planilha(valor):
     if pd.isna(valor) or str(valor).strip() == "":
@@ -116,7 +114,6 @@ def formatar_hora_planilha(valor):
     except (TypeError, ValueError):
         pass
     return texto
-
 
 def normalizar_colunas(df: pd.DataFrame) -> pd.DataFrame:
     if df is None or df.empty:
@@ -142,7 +139,6 @@ def normalizar_colunas(df: pd.DataFrame) -> pd.DataFrame:
     df["Hora"] = df["Hora"].map(formatar_hora_planilha)
     return df[["Data", "Hora", "Peso (kg)", "Lote"]].dropna(subset=["Peso (kg)"], how="all")
 
-
 @st.cache_data(ttl=15)
 def carregar_dados_todas_abas():
     resposta = requests.get(URL_SCRIPT, timeout=20)
@@ -161,11 +157,9 @@ def carregar_dados_todas_abas():
         resultado[str(nome_aba)] = normalizar_colunas(pd.DataFrame(linhas, columns=cabecalho))
     return resultado
 
-
 def chave_aba(nome):
     data = data_da_aba(nome)
     return datetime.combine(data, datetime.min.time()) if data else datetime.min
-
 
 def data_da_aba(nome):
     texto = str(nome)
@@ -181,15 +175,12 @@ def data_da_aba(nome):
                 pass
     return None
 
-
 def rotulo_aba(nome):
     data = data_da_aba(nome)
     return data.strftime("%d/%m/%Y") if data else str(nome)
 
-
 def formatar_numero(valor):
     return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-
 
 def gerar_xlsx(df: pd.DataFrame) -> bytes:
     buffer = io.BytesIO()
@@ -217,7 +208,6 @@ def gerar_xlsx(df: pd.DataFrame) -> bytes:
     except Exception:
         return df.to_csv(index=False, sep=";").encode("utf-8-sig")
 
-
 def grafico_layout(fig, height=300):
     fig.update_layout(
         template="plotly_dark",
@@ -231,7 +221,6 @@ def grafico_layout(fig, height=300):
         yaxis=dict(gridcolor="rgba(90,120,180,.10)", zeroline=False),
     )
     return fig
-
 
 def mostrar_metricas(df):
     total_caixas = len(df)
@@ -255,24 +244,11 @@ def mostrar_metricas(df):
                 unsafe_allow_html=True
             )
 
-
 def resumo_dia(df):
     peso_total = float(df["Peso (kg)"].sum()) if not df.empty else 0
     media = float(df["Peso (kg)"].mean()) if not df.empty else 0
     total_caixas = len(df)
     return peso_total, media, total_caixas
-
-
-def grafico_distribuicao(df):
-    if df.empty:
-        return None
-    bins = [0, 50, 60, 70, 80, float("inf")]
-    labels = ["< 50 kg", "50 – 60 kg", "60 – 70 kg", "70 – 80 kg", "80+ kg"]
-    grupos = pd.cut(df["Peso (kg)"], bins=bins, labels=labels, right=False)
-    contagem = grupos.value_counts().reindex(labels, fill_value=0)
-    fig = go.Figure(go.Pie(labels=contagem.index, values=contagem.values, hole=.72, textinfo="none", marker=dict(colors=["#2f80ff", "#4b6cff", "#713dff", "#8a35ff", "#b64dff"])))
-    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", height=250, margin=dict(l=5,r=5,t=5,b=5), showlegend=False, annotations=[dict(text=f"{len(df)}<br>caixas", x=.5, y=.5, font=dict(size=20, color="#fff"), showarrow=False)])
-    return fig, contagem
 
 # =========================================================
 # CARREGAMENTO E ESTADO GLOBAL
@@ -315,7 +291,6 @@ with st.sidebar:
     st.markdown("<div class='sidebar-status'><div style='font-weight:800;'>Sistema AMIRA</div><div style='color:#7f8da4;font-size:.75rem;margin-top:5px;'><span class='dot'></span>Monitoramento ativo</div></div>", unsafe_allow_html=True)
     st.markdown("<div class='footer'>© 2026 AMIRA • SENAI<br>IoT • Automação • Precisão</div>", unsafe_allow_html=True)
 
-
 # =========================================================
 # CABEÇALHO + AÇÕES
 # =========================================================
@@ -331,7 +306,6 @@ else:
 st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
 
 # 4 colunas exclusivas para alinhar perfeitamente os botões
-# Col 1: Seletor (menor), Col 2: Espaço vazio (para descolar), Col 3 e 4: Botões
 col_sel, col_space, col_b1, col_b2 = st.columns([1.5, 1.5, 1, 1])
 
 with col_sel:
@@ -347,10 +321,8 @@ with col_sel:
             st.rerun()
         dia_atual = dia_selecionado_novo
 
-# Gera o DataFrame do dia atual após o seletor
 df = dados_abas.get(dia_atual, vazio()) if dia_atual else vazio()
 
-# Os botões ganham um margin-top igual ao tamanho da label "Dia de Produção" para ficarem na mesma linha
 with col_b1:
     st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
     if st.button("🔄 Recarregar Dados", use_container_width=True):
@@ -368,9 +340,7 @@ with col_b2:
             use_container_width=True
         )
 
-# Linha divisória
 st.markdown("<div class='hero-line'></div>", unsafe_allow_html=True)
-
 
 # =========================================================
 # 1. TELA: REGISTRO E DADOS
@@ -403,7 +373,6 @@ if menu == "📋  Registro e Dados":
     with right:
         peso_total, media, total_caixas = resumo_dia(df)
         
-        # HTML sem recuos
         html_resumo = f"""<div class='panel summary-panel'>
 <div class='panel-title'>Resumo do Dia</div>
 <div class='panel-sub'>Indicadores principais</div>
@@ -433,21 +402,16 @@ if menu == "📋  Registro e Dados":
             fig.update_traces(line_color="#3d8cff", fillcolor="rgba(61,140,255,.15)")
             st.plotly_chart(grafico_layout(fig), use_container_width=True, config={"displayModeBar": False})
             
-with g2:
+    with g2:
         st.markdown("<div class='panel-title'>Distribuição dos pesos</div>", unsafe_allow_html=True)
         if not df.empty:
             fig2 = px.histogram(df, x="Peso (kg)", nbins=8)
-            
-            # Adiciona a cor e uma borda para destacar cada bloco
             fig2.update_traces(
                 marker_color="#7d4cff",
                 marker_line_color="#05070d", 
                 marker_line_width=2          
             )
-            
-            # Adiciona um espaço (gap) entre as colunas
             fig2.update_layout(bargap=0.08)
-            
             st.plotly_chart(grafico_layout(fig2), use_container_width=True, config={"displayModeBar": False})
 
 # =========================================================
@@ -458,7 +422,6 @@ elif menu == "📊  Gráficos e Análises":
     if not lista_abas:
         st.info("Aguardando registros para gerar as análises.")
     else:
-        # Cor de "Comparativo Diário" ajustada para azul
         st.markdown("<div class='panel-title' style='font-size:1.15rem; color:#00d2ff;'>Comparativo Diário</div><div class='section-subtitle'>Produção dia a dia</div>", unsafe_allow_html=True)
         resumo = []
         for nome, temp in dados_abas.items():
@@ -532,7 +495,6 @@ else:
             else:
                 titulo = f"🟠 {rotulo}   •   ! Pendente de lançamento"
             
-            # expanded=False garante que TODAS venham fechadas por padrão
             with st.expander(titulo, expanded=False):
                 if not esta_lancada:
                     st.warning("⚠️ Esta planilha ainda não foi marcada como lançada no sistema oficial.")
