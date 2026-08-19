@@ -441,8 +441,8 @@ with g2:
             # Adiciona a cor e uma borda para destacar cada bloco
             fig2.update_traces(
                 marker_color="#7d4cff",
-                marker_line_color="#05070d", # Cor de fundo para dar contraste
-                marker_line_width=2          # Espessura da borda
+                marker_line_color="#05070d", 
+                marker_line_width=2          
             )
             
             # Adiciona um espaço (gap) entre as colunas
