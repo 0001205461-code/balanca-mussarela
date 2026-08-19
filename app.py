@@ -433,11 +433,21 @@ if menu == "📋  Registro e Dados":
             fig.update_traces(line_color="#3d8cff", fillcolor="rgba(61,140,255,.15)")
             st.plotly_chart(grafico_layout(fig), use_container_width=True, config={"displayModeBar": False})
             
-    with g2:
+with g2:
         st.markdown("<div class='panel-title'>Distribuição dos pesos</div>", unsafe_allow_html=True)
         if not df.empty:
             fig2 = px.histogram(df, x="Peso (kg)", nbins=8)
-            fig2.update_traces(marker_color="#7d4cff")
+            
+            # Adiciona a cor e uma borda para destacar cada bloco
+            fig2.update_traces(
+                marker_color="#7d4cff",
+                marker_line_color="#05070d", # Cor de fundo para dar contraste
+                marker_line_width=2          # Espessura da borda
+            )
+            
+            # Adiciona um espaço (gap) entre as colunas
+            fig2.update_layout(bargap=0.08)
+            
             st.plotly_chart(grafico_layout(fig2), use_container_width=True, config={"displayModeBar": False})
 
 # =========================================================
