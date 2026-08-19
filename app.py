@@ -321,7 +321,7 @@ with st.sidebar:
 # =========================================================
 header_left, header_right = st.columns([2.9, 2.1])
 with header_left:
-    st.markdown("<div class='top-title'>Bem-vindo ao <span>AMIRA</span></div><div class='top-subtitle'>Sistema de Monitoramento e Registro de Produção</div>", unsafe_allow_html=True)
+    st.markdown("<div class='top-title'>Bem-vindo à <span>AMIRA</span></div><div class='top-subtitle'>Sistema de Monitoramento e Registro de Produção</div>", unsafe_allow_html=True)
 with header_right:
     a, b, c = st.columns([1, 1.45, 1.45])
     with a:
