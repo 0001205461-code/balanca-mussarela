@@ -473,63 +473,56 @@ elif menu == "📊  Gráficos e Análises":
                 st.plotly_chart(grafico_layout(fig),use_container_width=True,config={"displayModeBar":False})
 
 # =========================================================
-# HISTÓRICO DE PLANILHAS (DESTAQUE VERDE)
+# HISTÓRICO DE PLANILHAS (FUNDO VERDE SUAVE)
 # =========================================================
 else:
-    st.markdown("<div class='section-title'>Histórico de Planilhas</div><div class='section-subtitle'>Confira se cada dia já foi lançado. Clique na seta para ver os dados completos.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>Histórico de Planilhas</div><div class='section-subtitle'>Histórico de todas as planilhas registradas no sistema.</div>", unsafe_allow_html=True)
+    
+    # CSS injetado apenas nesta página para deixar os botões (expanders) com verde suave
+    st.markdown("""
+    <style>
+    [data-testid="stExpander"] {
+        background: rgba(35, 110, 60, 0.2) !important;
+        border: 1px solid rgba(46, 204, 113, 0.4) !important;
+        transition: 0.3s ease;
+    }
+    [data-testid="stExpander"]:hover {
+        background: rgba(35, 110, 60, 0.35) !important;
+        border-color: rgba(46, 204, 113, 0.7) !important;
+    }
+    [data-testid="stExpander"] summary p {
+        color: #c4f3d2 !important;
+        font-size: 1.05rem !important;
+        font-weight: 700 !important;
+    }
+    [data-testid="stExpander"] summary svg {
+        color: #c4f3d2 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
     if not lista_abas:
-        st.info("Ainda não há planilhas lançadas.")
+        st.info("Ainda não há planilhas lançadas. Quando houver envios da balança, elas aparecerão aqui.")
     else:
-        abas_por_data = {}
-        for nome, temp in dados_abas.items():
-            data = data_da_aba(nome)
-            if data:
-                abas_por_data[data] = (nome, temp)
-
-        st.markdown("<div class='panel-title'>Conferência de lançamentos</div><div class='section-subtitle'>As planilhas lançadas aparecem destacadas em verde para facilitar a visualização do trabalhador.</div>", unsafe_allow_html=True)
-        
-        referencia = max([datetime.now().date(), *abas_por_data.keys()]) if abas_por_data else datetime.now().date()
-        enviados = st.session_state.setdefault("dias_enviados_amira", set())
-        
-        for indice in range(14):
-            data = referencia - timedelta(days=indice)
-            nome, temp = abas_por_data.get(data, (None, vazio()))
-            encontrada = nome is not None and not temp.empty
-            confirmado = data.isoformat() in enviados
-            
-            if encontrada:
-                texto_status = "<span style='color: #00e676; font-weight: bold;'>🟢 ✓ OK — lançada</span>"
-            elif confirmado:
-                texto_status = "<span style='color: #00e676; font-weight: bold;'>🟢 ✓ Enviado</span>"
-            else:
-                texto_status = "<span style='color: #ff9800;'>! Pendente</span>"
-                
-            with st.expander(f"{data.strftime('%d/%m/%Y')}   •   {texto_status}", expanded=False):
-                if encontrada:
-                    tabela_dia = temp.copy().reset_index(drop=True)
-                    tabela_dia.insert(0, "#", tabela_dia.index + 1)
-                    st.markdown(f"<p style='color: #00e676; font-weight: bold;'>🟢 Planilha completa de {data.strftime('%d/%m/%Y')} — {len(tabela_dia)} caixas registradas.</p>", unsafe_allow_html=True)
-                    st.dataframe(tabela_dia, use_container_width=True, hide_index=True, column_config={"#": st.column_config.NumberColumn("#", width="small"), "Peso (kg)": st.column_config.NumberColumn("Peso (kg)", format="%.2f")})
-                else:
-                    st.info("Nenhuma planilha desse dia foi encontrada no sistema.")
-                    if confirmado:
-                        st.success("Marcada como enviada nesta sessão.")
-                    elif st.button("✓  Marcar como enviado", key=f"enviar_{data.isoformat()}"):
-                        enviados.add(data.isoformat())
-                        st.session_state["dias_enviados_amira"] = enviados
-                        st.rerun()
-
-        st.markdown("<br><div class='panel-title'>Planilhas lançadas</div><div class='section-subtitle'>Cada item representa um dia registrado no sistema.</div>", unsafe_allow_html=True)
         for nome in sorted(lista_abas, key=chave_aba, reverse=True):
             temp = dados_abas.get(nome, vazio())
             rotulo = rotulo_aba(nome)
-            with st.expander(f"🟢 {rotulo}   •   <span style='color: #00e676; font-weight: bold;'>✓ OK — planilha lançada</span>", expanded=False):
-                st.markdown(f"<p style='color: #00e676; font-weight: bold;'>🟢 {len(temp)} caixas registradas para {rotulo}.</p>", unsafe_allow_html=True)
+            
+            # Título limpo: apenas o ícone e o nome da aba
+            with st.expander(f"📄 {rotulo}", expanded=False):
                 if temp.empty:
                     st.info("A planilha existe, mas ainda não possui registros.")
                 else:
                     tabela_historico = temp.copy().reset_index(drop=True)
                     tabela_historico.insert(0, "#", tabela_historico.index + 1)
-                    st.dataframe(tabela_historico, use_container_width=True, hide_index=True, column_config={"#": st.column_config.NumberColumn("#", width="small"), "Peso (kg)": st.column_config.NumberColumn("Peso (kg)", format="%.2f")})
+                    st.dataframe(
+                        tabela_historico, 
+                        use_container_width=True, 
+                        hide_index=True, 
+                        column_config={
+                            "#": st.column_config.NumberColumn("#", width="small"), 
+                            "Peso (kg)": st.column_config.NumberColumn("Peso (kg)", format="%.2f")
+                        }
+                    )
 
 st.markdown("<div class='footer'>AMIRA • Sistema de Monitoramento e Registro de Produção • SENAI</div>", unsafe_allow_html=True)
