@@ -292,6 +292,9 @@ if lista_abas:
 else:
     dia_atual = None
 
+# ✅ VARIÁVEL DF INCLUÍDA AQUI
+df = dados_abas.get(dia_atual, vazio()) if dia_atual else vazio()
+
 # =========================================================
 # SIDEBAR
 # =========================================================
