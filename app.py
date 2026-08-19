@@ -319,20 +319,23 @@ with st.sidebar:
 # =========================================================
 # CABEÇALHO + AÇÕES
 # =========================================================
-header_left, header_right = st.columns([2.9, 2.1])
 
-with header_left:
-    # Títulos dinâmicos e grandes por página
-    if menu == "📋  Registro e Dados":
-        st.markdown("<div class='top-title'>Bem-vindo à <span>AMIRA</span></div><div class='top-subtitle'>Sistema de Monitoramento e Registro de Produção</div>", unsafe_allow_html=True)
-    elif menu == "📊  Gráficos e Análises":
-        st.markdown("<div class='top-title'><span>Gráficos</span> e Análises</div><div class='top-subtitle'>Explore o histórico e compare dias e meses de produção.</div>", unsafe_allow_html=True)
-    else:
-        st.markdown("<div class='top-title'><span>Histórico</span> de Planilhas</div><div class='top-subtitle'>Controle de lançamentos no sistema da empresa.</div>", unsafe_allow_html=True)
+# Títulos dinâmicos e grandes por página
+if menu == "📋  Registro e Dados":
+    st.markdown("<div class='top-title'>Bem-vindo à <span>AMIRA</span></div><div class='top-subtitle'>Sistema de Monitoramento e Registro de Produção</div>", unsafe_allow_html=True)
+elif menu == "📊  Gráficos e Análises":
+    st.markdown("<div class='top-title'><span>Gráficos</span> e Análises</div><div class='top-subtitle'>Explore o histórico e compare dias e meses de produção.</div>", unsafe_allow_html=True)
+else:
+    st.markdown("<div class='top-title'><span>Histórico</span> de Planilhas</div><div class='top-subtitle'>Controle de lançamentos no sistema da empresa.</div>", unsafe_allow_html=True)
 
-    # Seletor de data na esquerda, ajustado para alinhar com os botões
+st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
+
+# 4 colunas exclusivas para alinhar perfeitamente os botões
+# Col 1: Seletor (menor), Col 2: Espaço vazio (para descolar), Col 3 e 4: Botões
+col_sel, col_space, col_b1, col_b2 = st.columns([1.5, 1.5, 1, 1])
+
+with col_sel:
     if menu == "📋  Registro e Dados" and lista_abas:
-        st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
         dia_selecionado_novo = st.selectbox(
             "📅 Dia de Produção",
             options=lista_abas,
@@ -344,28 +347,26 @@ with header_left:
             st.rerun()
         dia_atual = dia_selecionado_novo
 
-# Gera o DataFrame do dia atual após o seletor (movido para cá para garantir que tenha a data atualizada)
+# Gera o DataFrame do dia atual após o seletor
 df = dados_abas.get(dia_atual, vazio()) if dia_atual else vazio()
 
-with header_right:
-    # Empurra os elementos pra baixo para alinhar com o seletor da esquerda e escapar da clickbox do GitHub
-    st.markdown("<div style='margin-top: 110px;'></div>", unsafe_allow_html=True)
-    
-    # Botões juntos
-    b1, b2 = st.columns(2)
-    with b1:
-        if st.button("🔄 Recarregar Dados", use_container_width=True):
-            carregar_dados_todas_abas.clear()
-            st.rerun()
-    with b2:
-        if dia_atual and not df.empty:
-            st.download_button(
-                label="⬇️ Baixar Planilha",
-                data=gerar_xlsx(df),
-                file_name=f"AMIRA_Producao_{rotulo_aba(dia_atual).replace('/', '-')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
-            )
+# Os botões ganham um margin-top igual ao tamanho da label "Dia de Produção" para ficarem na mesma linha
+with col_b1:
+    st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+    if st.button("🔄 Recarregar Dados", use_container_width=True):
+        carregar_dados_todas_abas.clear()
+        st.rerun()
+        
+with col_b2:
+    st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
+    if dia_atual and not df.empty:
+        st.download_button(
+            label="⬇️ Baixar Planilha",
+            data=gerar_xlsx(df),
+            file_name=f"AMIRA_Producao_{rotulo_aba(dia_atual).replace('/', '-')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
 
 # Linha divisória
 st.markdown("<div class='hero-line'></div>", unsafe_allow_html=True)
