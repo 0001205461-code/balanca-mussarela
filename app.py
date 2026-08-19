@@ -388,32 +388,51 @@ if menu == "📋  Registro e Dados":
                         if st.button("›", key=f"next_{dia}", disabled=pagina >= total_pages - 1, use_container_width=True):
                             st.session_state[page_key] = min(total_pages - 1, pagina + 1); st.rerun()
 
-        with right:
+with right:
             peso_total, media, total_caixas = resumo_dia(df)
             
-            # Painel único sem interrupções do Plotly para não quebrar o layout
-            st.markdown(
-                f"""
-                <div class='panel summary-panel'>
-                    <div class='panel-title'>Resumo do Dia</div>
-                    <div class='panel-sub'>Indicadores principais</div>
-                    
-                    <div style='display:flex; justify-content:center; align-items:center; padding: 30px 0 25px;'>
-                        <div style='width: 145px; height: 145px; border-radius: 50%; background: conic-gradient(#3d8cff 85%, rgba(255,255,255,0.05) 85%); display: flex; justify-content: center; align-items: center; box-shadow: 0 0 20px rgba(61,140,255,0.15);'>
-                            <div style='width: 125px; height: 125px; border-radius: 50%; background: #080c14; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 1px solid rgba(88,130,230,.15);'>
-                                <span style="font-family:'Orbitron', sans-serif; font-size: 1.35rem; font-weight: 800; color: #fff;">{formatar_numero(peso_total)}</span>
-                                <span style="font-size: 0.75rem; color: #77849a; margin-top: 2px;">kg</span>
-                            </div>
+            html_resumo = f"""
+            <div class='panel summary-panel'>
+                <div class='panel-title'>Resumo do Dia</div>
+                <div class='panel-sub'>Indicadores principais</div>
+                
+                <div style='display:flex; justify-content:center; align-items:center; padding: 30px 0 25px;'>
+                    <div style='width: 145px; height: 145px; border-radius: 50%; background: conic-gradient(#3d8cff 85%, rgba(255,255,255,0.05) 85%); display: flex; justify-content: center; align-items: center; box-shadow: 0 0 20px rgba(61,140,255,0.15);'>
+                        <div style='width: 125px; height: 125px; border-radius: 50%; background: #080c14; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 1px solid rgba(88,130,230,.15);'>
+                            <span style="font-family:'Orbitron', sans-serif; font-size: 1.35rem; font-weight: 800; color: #fff;">{formatar_numero(peso_total)}</span>
+                            <span style="font-size: 0.75rem; color: #77849a; margin-top: 2px;">kg</span>
                         </div>
                     </div>
-                    
-                    <div class='summary-row'><span>📦 Caixas passadas</span><b style='color:#fff;'>{total_caixas}</b></div>
-                    <div class='summary-row'><span>↗ Média por caixa</span><b style='color:#fff;'>{formatar_numero(media)} kg</b></div>
-                    <div class='summary-row'><span>⚖ Peso total acumulado</span><b style='color:#fff;'>{formatar_numero(peso_total)} kg</b></div>
                 </div>
-                """, 
-                unsafe_allow_html=True
-            )
+                
+                <div class='summary-row'><span>📦 Caixas passadas</span><b style='color:#fff;'>{total_caixas}</b></div>
+                <div class='summary-row'><span>↗ Média por caixa</span><b style='color:#fff;'>{formatar_numero(media)} kg</b></div>
+                <div class='summary-row'><span>⚖ Peso total acumulado</span><b style='color:#fff;'>{formatar_numero(peso_total)} kg</b></div>
+            </div>
+            """
+            st.markdown(html_resumo, unsafe_allow_html=True)
+        
+        # =========================================================
+        # GRÁFICOS DIÁRIOS (DE VOLTA NA TELA PRINCIPAL)
+        # =========================================================
+        st.markdown("<br><br><div class='section-title' style='font-size: 1.2rem;'>Desempenho do Dia</div>", unsafe_allow_html=True)
+        g1, g2 = st.columns(2)
+        
+        with g1:
+            st.markdown("<div class='panel-title'>Peso ao longo do dia</div>", unsafe_allow_html=True)
+            if not df.empty:
+                dfg = df.reset_index(drop=True).copy()
+                dfg["Registro"] = dfg.index + 1
+                fig = px.area(dfg, x="Registro", y="Peso (kg)")
+                fig.update_traces(line_color="#3d8cff", fillcolor="rgba(61,140,255,.15)")
+                st.plotly_chart(grafico_layout(fig), use_container_width=True, config={"displayModeBar": False})
+                
+        with g2:
+            st.markdown("<div class='panel-title'>Distribuição dos pesos</div>", unsafe_allow_html=True)
+            if not df.empty:
+                fig2 = px.histogram(df, x="Peso (kg)", nbins=8)
+                fig2.update_traces(marker_color="#7d4cff")
+                st.plotly_chart(grafico_layout(fig2), use_container_width=True, config={"displayModeBar": False})
 # =========================================================
 # GRÁFICOS E ANÁLISES
 # =========================================================
