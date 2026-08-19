@@ -390,51 +390,30 @@ if menu == "📋  Registro e Dados":
 
         with right:
             peso_total, media, total_caixas = resumo_dia(df)
-            st.markdown("<div class='panel summary-panel'><div class='panel-title'>Resumo do Dia</div><div class='panel-sub'>Indicadores principais</div>", unsafe_allow_html=True)
-            ring = go.Figure(go.Pie(values=[max(peso_total, 0.001), 1], labels=["Total", ""], hole=.78, textinfo="none", marker=dict(colors=["#3d8cff", "#7d32ff"], line=dict(color="#0a0e18", width=4))))
-            ring.update_layout(paper_bgcolor="rgba(0,0,0,0)", margin=dict(l=0,r=0,t=0,b=0), height=175, showlegend=False, annotations=[dict(text=f"{formatar_numero(peso_total)}<br><span style='font-size:12px'>kg</span>", x=.5, y=.5, font=dict(size=19,color="#fff"), showarrow=False)])
-            st.plotly_chart(ring, use_container_width=True, config={"displayModeBar": False})
+            
+            # Painel único sem interrupções do Plotly para não quebrar o layout
             st.markdown(
-                f"<div class='summary-row'><span>📦 Caixas passadas</span><b>{total_caixas}</b></div>"
-                f"<div class='summary-row'><span>↗ Média por caixa</span><b>{formatar_numero(media)} kg</b></div>"
-                f"<div class='summary-row'><span>⚖ Peso total acumulado</span><b>{formatar_numero(peso_total)} kg</b></div></div>", 
+                f"""
+                <div class='panel summary-panel'>
+                    <div class='panel-title'>Resumo do Dia</div>
+                    <div class='panel-sub'>Indicadores principais</div>
+                    
+                    <div style='display:flex; justify-content:center; align-items:center; padding: 30px 0 25px;'>
+                        <div style='width: 145px; height: 145px; border-radius: 50%; background: conic-gradient(#3d8cff 85%, rgba(255,255,255,0.05) 85%); display: flex; justify-content: center; align-items: center; box-shadow: 0 0 20px rgba(61,140,255,0.15);'>
+                            <div style='width: 125px; height: 125px; border-radius: 50%; background: #080c14; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 1px solid rgba(88,130,230,.15);'>
+                                <span style="font-family:'Orbitron', sans-serif; font-size: 1.35rem; font-weight: 800; color: #fff;">{formatar_numero(peso_total)}</span>
+                                <span style="font-size: 0.75rem; color: #77849a; margin-top: 2px;">kg</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class='summary-row'><span>📦 Caixas passadas</span><b style='color:#fff;'>{total_caixas}</b></div>
+                    <div class='summary-row'><span>↗ Média por caixa</span><b style='color:#fff;'>{formatar_numero(media)} kg</b></div>
+                    <div class='summary-row'><span>⚖ Peso total acumulado</span><b style='color:#fff;'>{formatar_numero(peso_total)} kg</b></div>
+                </div>
+                """, 
                 unsafe_allow_html=True
             )
-
-        st.markdown("<div class='automation-note'>✓ <span><b>Novo dia automático:</b> a planilha do próximo dia é criada pela balança assim que a primeira pesagem é enviada. Não é preciso criar uma aba manualmente.</span></div>", unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("<div class='panel-title' style='font-size:1.18rem'>Visão Geral</div>", unsafe_allow_html=True)
-        st.markdown("<div class='section-subtitle'>Análise visual da produção do dia</div>", unsafe_allow_html=True)
-        g1, g2, g3 = st.columns(3)
-        with g1:
-            st.markdown("<div class='panel-title'>Peso ao longo do dia (kg)</div>", unsafe_allow_html=True)
-            if not df.empty:
-                dfg = df.reset_index(drop=True).copy(); dfg["Registro"] = dfg.index + 1
-                fig = px.line(dfg, x="Registro", y="Peso (kg)", markers=True)
-                fig.update_traces(line_color="#3d8cff", marker_color="#a16bff", line_width=3)
-                st.plotly_chart(grafico_layout(fig, 270), use_container_width=True, config={"displayModeBar": False})
-            else: st.info("Sem dados")
-        with g2:
-            st.markdown("<div class='panel-title'>Distribuição de peso (kg)</div>", unsafe_allow_html=True)
-            dist = grafico_distribuicao(df)
-            if dist:
-                fig, contagem = dist
-                st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
-                st.markdown("<div class='small-note'>" + " • ".join([f"{k}: {v}" for k,v in contagem.items() if v]) + "</div>", unsafe_allow_html=True)
-            else: st.info("Sem dados")
-        with g3:
-            st.markdown("<div class='panel-title'>Caixas por período</div>", unsafe_allow_html=True)
-            if not df.empty:
-                temp = df.copy(); temp["Hora_dt"] = pd.to_datetime(temp["Hora"].astype(str), errors="coerce")
-                temp["Hora"] = temp["Hora_dt"].dt.hour
-                por_hora = temp.dropna(subset=["Hora"]).groupby("Hora").size().reset_index(name="Caixas")
-                fig = px.bar(por_hora, x="Hora", y="Caixas")
-                fig.update_traces(marker_color="#713dff")
-                fig.update_xaxes(dtick=1)
-                st.plotly_chart(grafico_layout(fig, 270), use_container_width=True, config={"displayModeBar": False})
-            else: st.info("Sem dados")
-
 # =========================================================
 # GRÁFICOS E ANÁLISES
 # =========================================================
