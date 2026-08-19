@@ -1,6 +1,7 @@
 import io
 import os
 import re
+import textwrap
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -285,15 +286,6 @@ except Exception as erro:
     erro_api = str(erro)
 
 lista_abas = sorted(dados_abas.keys(), key=chave_aba, reverse=True)
-if lista_abas:
-    dia_atual = st.session_state.get("dia_selecionado", lista_abas[0])
-    if dia_atual not in lista_abas:
-        dia_atual = lista_abas[0]
-else:
-    dia_atual = None
-
-# ✅ VARIÁVEL DF INCLUÍDA AQUI
-df = dados_abas.get(dia_atual, vazio()) if dia_atual else vazio()
 
 # =========================================================
 # SIDEBAR
@@ -327,8 +319,29 @@ with header_left:
     st.markdown("<div class='top-title'>Bem-vindo à <span>AMIRA</span></div><div class='top-subtitle'>Sistema de Monitoramento e Registro de Produção</div>", unsafe_allow_html=True)
 
 with header_right:
-    # (Se você tinha o botão de recarregar planilha aqui, ele não será alterado se você o mantiver antes dessa parte, mas caso precise, geralmente fica aqui)
-    pass 
+    # 1️⃣ SELETOR DE DIA DE VOLTA AO CABEÇALHO
+    if lista_abas:
+        dia_selecionado_estado = st.session_state.get("dia_selecionado", lista_abas[0])
+        if dia_selecionado_estado not in lista_abas:
+            dia_selecionado_estado = lista_abas[0]
+            
+        dia_atual = st.selectbox(
+            "📅 Dia de Produção",
+            options=lista_abas,
+            format_func=rotulo_aba,
+            index=lista_abas.index(dia_selecionado_estado),
+        )
+        st.session_state["dia_selecionado"] = dia_atual
+    else:
+        dia_atual = None
+        
+    # BOTÃO PARA RECARREGAR OS DADOS
+    if st.button("🔄 Recarregar Dados", use_container_width=True):
+        carregar_dados_todas_abas.clear()
+        st.rerun()
+
+# DEFINIÇÃO DO DF APÓS ESCOLHER O DIA NO SELETOR
+df = dados_abas.get(dia_atual, vazio()) if dia_atual else vazio()
 
 # =========================================================
 # 1. TELA: REGISTRO E DADOS
@@ -336,11 +349,14 @@ with header_right:
 if menu == "📋  Registro e Dados":
     st.markdown("<div class='section-title'>Dados do Dia</div>", unsafe_allow_html=True)
     
+    # 2️⃣ CARDS DE MÉTRICAS (QUADRADOS) DE VOLTA
+    mostrar_metricas(df)
+    st.markdown("<br>", unsafe_allow_html=True)
+    
     # Divide a tela entre Tabela (Esquerda) e Resumo (Direita)
     left, right = st.columns([2.2, 1])
     
     with left:
-        # Aqui o sistema desenha a tabela do dia (ela não foi alterada)
         if df.empty:
             st.info("Aguardando pesagens para exibir na tabela.")
         else:
@@ -359,8 +375,8 @@ if menu == "📋  Registro e Dados":
     with right:
         peso_total, media, total_caixas = resumo_dia(df)
         
-        # Painel em HTML blindado contra quebra de layout
-        html_resumo = f"""
+        # 3️⃣ PROTEÇÃO DO CÓDIGO HTML COM TEXTWRAP (Isso impede que vire um "bloco de código")
+        html_resumo = textwrap.dedent(f"""
         <div class='panel summary-panel'>
             <div class='panel-title'>Resumo do Dia</div>
             <div class='panel-sub'>Indicadores principais</div>
@@ -378,7 +394,7 @@ if menu == "📋  Registro e Dados":
             <div class='summary-row'><span>↗ Média por caixa</span><b style='color:#fff;'>{formatar_numero(media)} kg</b></div>
             <div class='summary-row'><span>⚖ Peso total acumulado</span><b style='color:#fff;'>{formatar_numero(peso_total)} kg</b></div>
         </div>
-        """
+        """)
         st.markdown(html_resumo, unsafe_allow_html=True)
         
     # --- GRÁFICOS DIÁRIOS NA TELA PRINCIPAL ---
