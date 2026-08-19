@@ -473,43 +473,43 @@ elif menu == "📊  Gráficos e Análises":
                 st.plotly_chart(grafico_layout(fig),use_container_width=True,config={"displayModeBar":False})
 
 # =========================================================
-# HISTÓRICO DE PLANILHAS (FUNDO VERDE SUAVE)
+# HISTÓRICO DE PLANILHAS (COM CHECKLIST DE LANÇAMENTO)
 # =========================================================
 else:
-    st.markdown("<div class='section-title'>Histórico de Planilhas</div><div class='section-subtitle'>Histórico de todas as planilhas registradas no sistema.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>Histórico de Planilhas</div><div class='section-subtitle'>Controle de lançamentos: confirme quais planilhas já foram passadas para o sistema da empresa.</div>", unsafe_allow_html=True)
     
-    # CSS injetado apenas nesta página para deixar os botões (expanders) com verde suave
-    st.markdown("""
-    <style>
-    [data-testid="stExpander"] {
-        background: rgba(35, 110, 60, 0.2) !important;
-        border: 1px solid rgba(46, 204, 113, 0.4) !important;
-        transition: 0.3s ease;
-    }
-    [data-testid="stExpander"]:hover {
-        background: rgba(35, 110, 60, 0.35) !important;
-        border-color: rgba(46, 204, 113, 0.7) !important;
-    }
-    [data-testid="stExpander"] summary p {
-        color: #c4f3d2 !important;
-        font-size: 1.05rem !important;
-        font-weight: 700 !important;
-    }
-    [data-testid="stExpander"] summary svg {
-        color: #c4f3d2 !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    # Cria uma memória na sessão para lembrar quais planilhas o trabalhador já marcou como lançadas
+    if "planilhas_lancadas" not in st.session_state:
+        st.session_state["planilhas_lancadas"] = set()
 
     if not lista_abas:
-        st.info("Ainda não há planilhas lançadas. Quando houver envios da balança, elas aparecerão aqui.")
+        st.info("Ainda não há planilhas registradas pela balança.")
     else:
         for nome in sorted(lista_abas, key=chave_aba, reverse=True):
             temp = dados_abas.get(nome, vazio())
             rotulo = rotulo_aba(nome)
             
-            # Título limpo: apenas o ícone e o nome da aba
-            with st.expander(f"📄 {rotulo}", expanded=False):
+            # Verifica se o trabalhador já clicou no botão para esta aba
+            esta_lancada = nome in st.session_state["planilhas_lancadas"]
+            
+            # Altera o título visualmente dependendo do status
+            if esta_lancada:
+                titulo = f"🟢 {rotulo}   •   ✓ Lançado no sistema"
+            else:
+                titulo = f"🟠 {rotulo}   •   ! Pendente de lançamento"
+            
+            # O expander fica aberto por padrão se estiver pendente, e fechado se já estiver lançado
+            with st.expander(titulo, expanded=not esta_lancada):
+                
+                # Mostra o botão apenas se não estiver lançada
+                if not esta_lancada:
+                    st.warning("⚠️ Esta planilha ainda não foi marcada como lançada no sistema oficial.")
+                    if st.button(f"✓ Confirmar Lançamento — {rotulo}", key=f"btn_{nome}", type="primary"):
+                        st.session_state["planilhas_lancadas"].add(nome)
+                        st.rerun()
+                else:
+                    st.success("✅ Lançamento confirmado pela equipe!")
+
                 if temp.empty:
                     st.info("A planilha existe, mas ainda não possui registros.")
                 else:
