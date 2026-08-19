@@ -322,166 +322,114 @@ with st.sidebar:
 header_left, header_right = st.columns([2.9, 2.1])
 with header_left:
     st.markdown("<div class='top-title'>Bem-vindo à <span>AMIRA</span></div><div class='top-subtitle'>Sistema de Monitoramento e Registro de Produção</div>", unsafe_allow_html=True)
-with header_right:
-    a, b, c = st.columns([1, 1.45, 1.45])
-    with a:
-        st.markdown("<div class='status-pill'>● Online</div>", unsafe_allow_html=True)
-    with b:
-        if st.button("↻  Recarregar Planilha", use_container_width=True):
-            st.cache_data.clear()
-            st.rerun()
-    with c:
-        if dia_atual:
-            df_download = dados_abas.get(dia_atual, vazio())
-            st.download_button("↓  Baixar Planilha", data=gerar_xlsx(df_download), file_name=f"AMIRA_{dia_atual}.xlsx", mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-        else:
-            st.button("↓  Baixar Planilha", disabled=True, use_container_width=True)
 
-st.markdown("<div class='hero-line'></div>", unsafe_allow_html=True)
-if erro_api:
-    st.warning("Não foi possível atualizar os dados da planilha agora. O painel continua funcionando e não será derrubado pelo erro de exportação. Verifique a publicação do Google Apps Script.")
+with header_right:
+    # (Se você tinha o botão de recarregar planilha aqui, ele não será alterado se você o mantiver antes dessa parte, mas caso precise, geralmente fica aqui)
+    pass 
 
 # =========================================================
-# REGISTRO E DADOS — LAYOUT PRINCIPAL
+# 1. TELA: REGISTRO E DADOS
 # =========================================================
 if menu == "📋  Registro e Dados":
-    if not lista_abas:
-        st.info("Aguardando dados da balança. Quando o primeiro registro for enviado, o AMIRA criará automaticamente a aba do dia.")
-    else:
-        seletor_col, vazio_col = st.columns([1.1, 3.9])
-        with seletor_col:
-            dia = st.selectbox("Data de produção", lista_abas, index=lista_abas.index(dia_atual))
-            st.session_state["dia_selecionado"] = dia
-        df = dados_abas.get(dia, vazio())
-
-        mostrar_metricas(df)
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        st.markdown("<div class='panel'><div class='data-title'>Dados do Dia</div><div class='panel-sub'>Registros da produção • <b style='color:#dce7ff'>" + str(dia) + "</b></div></div>", unsafe_allow_html=True)
-        st.markdown("<br>", unsafe_allow_html=True)
-        left, right = st.columns([3.35, 1.05])
-
-        with left:
-            if df.empty:
-                st.info("A aba selecionada ainda não possui registros.")
-            else:
-                page_size = 7
-                total_pages = max(1, (len(df) + page_size - 1) // page_size)
-                page_key = f"page_{dia}"
-                pagina = int(st.session_state.get(page_key, 0))
-                pagina = min(pagina, total_pages - 1)
-                inicio = pagina * page_size
-                tabela = df.iloc[inicio:inicio + page_size].copy()
-                tabela.insert(0, "#", range(inicio + 1, inicio + len(tabela) + 1))
-                st.dataframe(tabela, use_container_width=True, height=390, hide_index=True, column_config={"#": st.column_config.NumberColumn("#", width="small"), "Data": st.column_config.TextColumn("Data"), "Hora": st.column_config.TextColumn("Hora"), "Peso (kg)": st.column_config.NumberColumn("Peso (kg)", format="%.2f"), "Lote": st.column_config.TextColumn("Lote")})
-                p1, p2, p3 = st.columns([2.2, 2.2, 2.2])
-                with p1:
-                    st.caption(f"Mostrando {inicio+1} a {min(inicio+page_size,len(df))} de {len(df)} registros")
-                with p2:
-                    st.caption(f"Página {pagina+1} de {total_pages}")
-                with p3:
-                    q1, q2 = st.columns(2)
-                    with q1:
-                        if st.button("‹", key=f"prev_{dia}", disabled=pagina == 0, use_container_width=True):
-                            st.session_state[page_key] = max(0, pagina - 1); st.rerun()
-                    with q2:
-                        if st.button("›", key=f"next_{dia}", disabled=pagina >= total_pages - 1, use_container_width=True):
-                            st.session_state[page_key] = min(total_pages - 1, pagina + 1); st.rerun()
-
-with right:
-            peso_total, media, total_caixas = resumo_dia(df)
+    st.markdown("<div class='section-title'>Dados do Dia</div>", unsafe_allow_html=True)
+    
+    # Divide a tela entre Tabela (Esquerda) e Resumo (Direita)
+    left, right = st.columns([2.2, 1])
+    
+    with left:
+        # Aqui o sistema desenha a tabela do dia (ela não foi alterada)
+        if df.empty:
+            st.info("Aguardando pesagens para exibir na tabela.")
+        else:
+            tabela_exibicao = df.copy().reset_index(drop=True)
+            tabela_exibicao.insert(0, "#", tabela_exibicao.index + 1)
+            st.dataframe(
+                tabela_exibicao, 
+                use_container_width=True, 
+                hide_index=True, 
+                column_config={
+                    "#": st.column_config.NumberColumn("#", width="small"),
+                    "Peso (kg)": st.column_config.NumberColumn("Peso (kg)", format="%.2f")
+                }
+            )
+        
+    with right:
+        peso_total, media, total_caixas = resumo_dia(df)
+        
+        # Painel em HTML blindado contra quebra de layout
+        html_resumo = f"""
+        <div class='panel summary-panel'>
+            <div class='panel-title'>Resumo do Dia</div>
+            <div class='panel-sub'>Indicadores principais</div>
             
-            html_resumo = f"""
-            <div class='panel summary-panel'>
-                <div class='panel-title'>Resumo do Dia</div>
-                <div class='panel-sub'>Indicadores principais</div>
-                
-                <div style='display:flex; justify-content:center; align-items:center; padding: 30px 0 25px;'>
-                    <div style='width: 145px; height: 145px; border-radius: 50%; background: conic-gradient(#3d8cff 85%, rgba(255,255,255,0.05) 85%); display: flex; justify-content: center; align-items: center; box-shadow: 0 0 20px rgba(61,140,255,0.15);'>
-                        <div style='width: 125px; height: 125px; border-radius: 50%; background: #080c14; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 1px solid rgba(88,130,230,.15);'>
-                            <span style="font-family:'Orbitron', sans-serif; font-size: 1.35rem; font-weight: 800; color: #fff;">{formatar_numero(peso_total)}</span>
-                            <span style="font-size: 0.75rem; color: #77849a; margin-top: 2px;">kg</span>
-                        </div>
+            <div style='display:flex; justify-content:center; align-items:center; padding: 30px 0 25px;'>
+                <div style='width: 145px; height: 145px; border-radius: 50%; background: conic-gradient(#3d8cff 85%, rgba(255,255,255,0.05) 85%); display: flex; justify-content: center; align-items: center; box-shadow: 0 0 20px rgba(61,140,255,0.15);'>
+                    <div style='width: 125px; height: 125px; border-radius: 50%; background: #080c14; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 1px solid rgba(88,130,230,.15);'>
+                        <span style="font-family:'Orbitron', sans-serif; font-size: 1.35rem; font-weight: 800; color: #fff;">{formatar_numero(peso_total)}</span>
+                        <span style="font-size: 0.75rem; color: #77849a; margin-top: 2px;">kg</span>
                     </div>
                 </div>
-                
-                <div class='summary-row'><span>📦 Caixas passadas</span><b style='color:#fff;'>{total_caixas}</b></div>
-                <div class='summary-row'><span>↗ Média por caixa</span><b style='color:#fff;'>{formatar_numero(media)} kg</b></div>
-                <div class='summary-row'><span>⚖ Peso total acumulado</span><b style='color:#fff;'>{formatar_numero(peso_total)} kg</b></div>
             </div>
-            """
-            st.markdown(html_resumo, unsafe_allow_html=True)
+            
+            <div class='summary-row'><span>📦 Caixas passadas</span><b style='color:#fff;'>{total_caixas}</b></div>
+            <div class='summary-row'><span>↗ Média por caixa</span><b style='color:#fff;'>{formatar_numero(media)} kg</b></div>
+            <div class='summary-row'><span>⚖ Peso total acumulado</span><b style='color:#fff;'>{formatar_numero(peso_total)} kg</b></div>
+        </div>
+        """
+        st.markdown(html_resumo, unsafe_allow_html=True)
         
-        # =========================================================
-        # GRÁFICOS DIÁRIOS (DE VOLTA NA TELA PRINCIPAL)
-        # =========================================================
-        st.markdown("<br><br><div class='section-title' style='font-size: 1.2rem;'>Desempenho do Dia</div>", unsafe_allow_html=True)
-        g1, g2 = st.columns(2)
-        
-        with g1:
-            st.markdown("<div class='panel-title'>Peso ao longo do dia</div>", unsafe_allow_html=True)
-            if not df.empty:
-                dfg = df.reset_index(drop=True).copy()
-                dfg["Registro"] = dfg.index + 1
-                fig = px.area(dfg, x="Registro", y="Peso (kg)")
-                fig.update_traces(line_color="#3d8cff", fillcolor="rgba(61,140,255,.15)")
-                st.plotly_chart(grafico_layout(fig), use_container_width=True, config={"displayModeBar": False})
-                
-        with g2:
-            st.markdown("<div class='panel-title'>Distribuição dos pesos</div>", unsafe_allow_html=True)
-            if not df.empty:
-                fig2 = px.histogram(df, x="Peso (kg)", nbins=8)
-                fig2.update_traces(marker_color="#7d4cff")
-                st.plotly_chart(grafico_layout(fig2), use_container_width=True, config={"displayModeBar": False})
+    # --- GRÁFICOS DIÁRIOS NA TELA PRINCIPAL ---
+    st.markdown("<br><br><div class='section-title' style='font-size: 1.2rem;'>Desempenho do Dia</div>", unsafe_allow_html=True)
+    g1, g2 = st.columns(2)
+    
+    with g1:
+        st.markdown("<div class='panel-title'>Peso ao longo do dia</div>", unsafe_allow_html=True)
+        if not df.empty:
+            dfg = df.reset_index(drop=True).copy()
+            dfg["Registro"] = dfg.index + 1
+            fig = px.area(dfg, x="Registro", y="Peso (kg)")
+            fig.update_traces(line_color="#3d8cff", fillcolor="rgba(61,140,255,.15)")
+            st.plotly_chart(grafico_layout(fig), use_container_width=True, config={"displayModeBar": False})
+            
+    with g2:
+        st.markdown("<div class='panel-title'>Distribuição dos pesos</div>", unsafe_allow_html=True)
+        if not df.empty:
+            fig2 = px.histogram(df, x="Peso (kg)", nbins=8)
+            fig2.update_traces(marker_color="#7d4cff")
+            st.plotly_chart(grafico_layout(fig2), use_container_width=True, config={"displayModeBar": False})
+
 # =========================================================
-# GRÁFICOS E ANÁLISES
+# 2. TELA: GRÁFICOS E ANÁLISES (LONGO PRAZO)
 # =========================================================
 elif menu == "📊  Gráficos e Análises":
     st.markdown("<div class='section-title'>Gráficos e Análises</div><div class='section-subtitle'>Explore o histórico e compare dias e meses de produção.</div>", unsafe_allow_html=True)
+    
     if not lista_abas:
         st.info("Aguardando registros para gerar as análises.")
     else:
-        # --- 1. VISÃO DO DIA SELECIONADO ---
-        dia = st.selectbox("Dia analisado", lista_abas, index=lista_abas.index(dia_atual))
-        df = dados_abas.get(dia, vazio())
-        mostrar_metricas(df)
-        st.markdown("<br>", unsafe_allow_html=True)
-        
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown("<div class='panel-title'>Peso ao longo do dia</div>", unsafe_allow_html=True)
-            if not df.empty:
-                dfg=df.reset_index(drop=True).copy(); dfg["Registro"]=dfg.index+1
-                fig=px.area(dfg,x="Registro",y="Peso (kg)"); fig.update_traces(line_color="#3d8cff",fillcolor="rgba(61,140,255,.15)")
-                st.plotly_chart(grafico_layout(fig),use_container_width=True,config={"displayModeBar":False})
-        with c2:
-            st.markdown("<div class='panel-title'>Distribuição dos pesos</div>", unsafe_allow_html=True)
-            if not df.empty:
-                fig=px.histogram(df,x="Peso (kg)",nbins=8); fig.update_traces(marker_color="#7d4cff")
-                st.plotly_chart(grafico_layout(fig),use_container_width=True,config={"displayModeBar":False})
-        
-        # --- 2. COMPARATIVO DE DIAS RECENTES ---
+        # Comparativo Diário
         st.markdown("<br><div class='panel-title' style='font-size:1.15rem;'>Comparativo Diário</div><div class='section-subtitle'>Produção dia a dia</div>", unsafe_allow_html=True)
-        resumo=[]
-        for nome,temp in dados_abas.items():
+        resumo = []
+        for nome, temp in dados_abas.items():
             if not temp.empty: 
-                resumo.append({"Data":nome, "Peso total (kg)":temp["Peso (kg)"].sum(), "Caixas":len(temp)})
-        rdf=pd.DataFrame(resumo)
+                resumo.append({"Data": nome, "Peso total (kg)": temp["Peso (kg)"].sum(), "Caixas": len(temp)})
+        rdf = pd.DataFrame(resumo)
         
         if not rdf.empty:
-            c3,c4=st.columns(2)
+            c3, c4 = st.columns(2)
             with c3:
                 st.markdown("<div class='panel-title'>Peso Diário (kg)</div>", unsafe_allow_html=True)
-                fig=px.bar(rdf,x="Data",y="Peso total (kg)"); fig.update_traces(marker_color="#2f80ff")
-                st.plotly_chart(grafico_layout(fig),use_container_width=True,config={"displayModeBar":False})
+                fig = px.bar(rdf, x="Data", y="Peso total (kg)")
+                fig.update_traces(marker_color="#2f80ff")
+                st.plotly_chart(grafico_layout(fig), use_container_width=True, config={"displayModeBar": False})
             with c4:
                 st.markdown("<div class='panel-title'>Caixas por Dia</div>", unsafe_allow_html=True)
-                fig=px.bar(rdf,x="Data",y="Caixas"); fig.update_traces(marker_color="#8a35ff")
-                st.plotly_chart(grafico_layout(fig),use_container_width=True,config={"displayModeBar":False})
+                fig = px.bar(rdf, x="Data", y="Caixas")
+                fig.update_traces(marker_color="#8a35ff")
+                st.plotly_chart(grafico_layout(fig), use_container_width=True, config={"displayModeBar": False})
 
-        # --- 3. ANÁLISE DE LONGO PRAZO (MENSAL/ANUAL) ---
+        # Análise de Longo Prazo (Mensal)
         st.markdown("<br><div class='panel-title' style='font-size:1.15rem; color:#00d2ff;'>Análise de Longo Prazo (Mensal)</div><div class='section-subtitle'>Comparativo histórico agrupado por mês e ano para controle gerencial.</div>", unsafe_allow_html=True)
-        
         long_term_data = []
         for nome, temp in dados_abas.items():
             if not temp.empty:
@@ -497,35 +445,27 @@ elif menu == "📊  Gráficos e Análises":
         
         if long_term_data:
             df_lt = pd.DataFrame(long_term_data)
-            # Agrupa os dados somando os dias dentro de cada mês/ano
-            df_grp = df_lt.groupby(["Ano", "Mês_Num", "Mês/Ano"]).sum().reset_index()
-            # Ordena cronologicamente
-            df_grp = df_grp.sort_values(by=["Ano", "Mês_Num"])
+            df_grp = df_lt.groupby(["Ano", "Mês_Num", "Mês/Ano"]).sum().reset_index().sort_values(by=["Ano", "Mês_Num"])
             
             lt1, lt2 = st.columns(2)
             with lt1:
                 st.markdown("<div class='panel-title'>Produção Mensal Acumulada (kg)</div>", unsafe_allow_html=True)
-                # Gráfico de barras separando por Ano (cores diferentes)
-                fig_lt1 = px.bar(df_grp, x="Mês/Ano", y="Peso total (kg)", color="Ano", 
-                                 color_discrete_sequence=["#00d2ff", "#2f80ff", "#8a35ff"])
+                fig_lt1 = px.bar(df_grp, x="Mês/Ano", y="Peso total (kg)", color="Ano", color_discrete_sequence=["#00d2ff", "#2f80ff", "#8a35ff"])
                 st.plotly_chart(grafico_layout(fig_lt1), use_container_width=True, config={"displayModeBar": False})
-            
             with lt2:
                 st.markdown("<div class='panel-title'>Volume Mensal (Qtd. Caixas)</div>", unsafe_allow_html=True)
-                # Gráfico de linha com marcadores mostrando o crescimento/queda de caixas
-                fig_lt2 = px.line(df_grp, x="Mês/Ano", y="Caixas", color="Ano", markers=True, 
-                                  color_discrete_sequence=["#00d2ff", "#2f80ff", "#8a35ff"])
+                fig_lt2 = px.line(df_grp, x="Mês/Ano", y="Caixas", color="Ano", markers=True, color_discrete_sequence=["#00d2ff", "#2f80ff", "#8a35ff"])
                 fig_lt2.update_traces(line_width=3, marker=dict(size=8))
                 st.plotly_chart(grafico_layout(fig_lt2), use_container_width=True, config={"displayModeBar": False})
         else:
             st.info("Aguardando dados históricos suficientes para gerar gráficos mensais.")
+
 # =========================================================
-# HISTÓRICO DE PLANILHAS (COM CHECKLIST DE LANÇAMENTO)
+# 3. TELA: HISTÓRICO DE PLANILHAS (COM CHECKLIST)
 # =========================================================
 else:
     st.markdown("<div class='section-title'>Histórico de Planilhas</div><div class='section-subtitle'>Controle de lançamentos: confirme quais planilhas já foram passadas para o sistema da empresa.</div>", unsafe_allow_html=True)
     
-    # Cria uma memória na sessão para lembrar quais planilhas o trabalhador já marcou como lançadas
     if "planilhas_lancadas" not in st.session_state:
         st.session_state["planilhas_lancadas"] = set()
 
@@ -536,19 +476,14 @@ else:
             temp = dados_abas.get(nome, vazio())
             rotulo = rotulo_aba(nome)
             
-            # Verifica se o trabalhador já clicou no botão para esta aba
             esta_lancada = nome in st.session_state["planilhas_lancadas"]
             
-            # Altera o título visualmente dependendo do status
             if esta_lancada:
                 titulo = f"🟢 {rotulo}   •   ✓ Lançado no sistema"
             else:
                 titulo = f"🟠 {rotulo}   •   ! Pendente de lançamento"
             
-            # O expander fica aberto por padrão se estiver pendente, e fechado se já estiver lançado
             with st.expander(titulo, expanded=not esta_lancada):
-                
-                # Mostra o botão apenas se não estiver lançada
                 if not esta_lancada:
                     st.warning("⚠️ Esta planilha ainda não foi marcada como lançada no sistema oficial.")
                     if st.button(f"✓ Confirmar Lançamento — {rotulo}", key=f"btn_{nome}", type="primary"):
