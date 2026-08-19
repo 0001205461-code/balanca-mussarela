@@ -16,11 +16,12 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# SUBSTITUA PELA SUA URL DO GOOGLE APPS SCRIPT
 URL_SCRIPT = "https://script.google.com/macros/s/AKfycbwQ8IIVRIDsx8-CdJeKw6LUr4rBOFGX0jb42augc8v89TZVNWy0O8mlBAK23O2Tjymmaw/exec"
 TZ = "America/Sao_Paulo"
 
 # =========================================================
-# VISUAL AMIRA
+# VISUAL AMIRA (CSS)
 # =========================================================
 st.markdown(
     """
@@ -29,8 +30,6 @@ st.markdown(
 :root{--bg:#05070d;--panel:#0b0f1a;--panel2:#0f1422;--line:rgba(85,139,255,.24);--blue:#2f80ff;--cyan:#00d2ff;--purple:#8a35ff;--text:#f4f7ff;--muted:#8f9bb2}
 html,body,[class*="css"]{font-family:Inter,sans-serif}
 .stApp{background:radial-gradient(circle at 68% 12%,rgba(54,83,180,.13),transparent 28%),radial-gradient(circle at 96% 76%,rgba(138,53,255,.12),transparent 31%),#05070d;color:var(--text)}
-/* O cabeçalho fica transparente: remove a faixa escura sem esconder o botão
-   que reabre a barra lateral quando ela é minimizada. */
 header[data-testid="stHeader"]{background:transparent!important}
 [data-testid="stToolbar"]{display:flex!important;background:transparent!important}
 [data-testid="stDecoration"]{display:none!important}
@@ -44,11 +43,6 @@ section[data-testid="stSidebar"]>div{padding-top:1.05rem}
 .side-caption{text-align:center;color:var(--muted);font-size:.75rem;margin-top:4px}
 .nav-title{color:#6fdbff;font-size:.70rem;font-weight:800;letter-spacing:1.5px;margin:25px 0 8px}
 div[data-testid="stSidebar"] div[role="radiogroup"]{gap:10px;width:100%}
-div[data-testid="stSidebar"] div[role="radiogroup"] label{width:100%!important;min-height:52px;box-sizing:border-box;background:linear-gradient(135deg,rgba(16,22,37,.98),rgba(10,14,25,.98))!important;border:1px solid rgba(76,122,255,.20)!important;border-radius:10px!important;padding:14px 16px!important;margin:0!important;color:#d2dbed!important;transition:.22s ease!important;cursor:pointer!important}
-div[data-testid="stSidebar"] div[role="radiogroup"] label:hover{border-color:rgba(0,210,255,.65)!important;transform:translateX(3px)}
-div[data-testid="stSidebar"] div[role="radiogroup"] label[data-checked="true"]{background:linear-gradient(90deg,rgba(24,112,255,.92),rgba(117,48,238,.92))!important;color:white!important;border-color:rgba(116,192,255,.7)!important;box-shadow:0 0 22px rgba(71,100,255,.25)}
-div[data-testid="stSidebar"] div[role="radiogroup"] label>div:first-child,div[data-testid="stSidebar"] div[role="radiogroup"] input{position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;pointer-events:none!important}
-/* Navegação: botões reais, largos e retangulares — sem radio buttons. */
 section[data-testid="stSidebar"] .stButton{width:100%!important;margin:0 0 10px!important}
 section[data-testid="stSidebar"] .stButton>button{width:100%!important;min-height:58px!important;padding:14px 16px!important;justify-content:flex-start!important;text-align:left!important;border-radius:10px!important;border:1px solid rgba(76,122,255,.24)!important;background:linear-gradient(135deg,rgba(16,22,37,.98),rgba(10,14,25,.98))!important;color:#dce6fa!important;font-size:.92rem!important;font-weight:750!important;box-shadow:none!important}
 section[data-testid="stSidebar"] .stButton>button:hover{border-color:rgba(0,210,255,.75)!important;transform:translateX(3px)!important;box-shadow:0 0 20px rgba(33,133,255,.20)!important}
@@ -60,21 +54,20 @@ section[data-testid="stSidebar"] .stButton>button[kind="primary"]{background:lin
 .hero-line{height:1px;background:linear-gradient(90deg,rgba(60,120,255,.35),rgba(130,60,255,.22),transparent);margin:16px 0 18px}
 .stButton>button,.stDownloadButton>button{border-radius:10px!important;border:1px solid rgba(68,137,255,.55)!important;background:linear-gradient(100deg,#0876df,#5631d6)!important;color:#fff!important;font-weight:700!important;min-height:42px!important;box-shadow:0 0 18px rgba(47,128,255,.16);transition:.2s ease!important}
 .stButton>button:hover,.stDownloadButton>button:hover{transform:translateY(-2px);box-shadow:0 0 25px rgba(103,67,255,.35)}
-.metric-card{position:relative;overflow:hidden;min-height:118px;padding:18px;border-radius:15px;border:1px solid rgba(87,125,210,.22);background:linear-gradient(145deg,rgba(14,19,32,.97),rgba(7,11,20,.92));box-shadow:0 12px 35px rgba(0,0,0,.24);transition:.25s ease}.metric-card:hover{transform:translateY(-2px);border-color:rgba(70,157,255,.45);box-shadow:0 16px 40px rgba(25,75,170,.18)}
+.metric-card{position:relative;overflow:hidden;min-height:118px;padding:18px;border-radius:15px;border:1px solid rgba(87,125,210,.22);background:linear-gradient(145deg,rgba(14,19,32,.97),rgba(7,11,20,.92));box-shadow:0 12px 35px rgba(0,0,0,.24);transition:.25s ease}
+.metric-card:hover{transform:translateY(-2px);border-color:rgba(70,157,255,.45);box-shadow:0 16px 40px rgba(25,75,170,.18)}
 .metric-card:after{content:"";position:absolute;width:115px;height:115px;right:-38px;bottom:-48px;border-radius:50%;background:radial-gradient(circle,rgba(37,131,255,.20),transparent 70%)}
 .metric-label{color:#9ca8bc;font-size:.78rem;font-weight:700}.metric-value{font-family:Orbitron,sans-serif;font-size:1.7rem;font-weight:700;margin-top:8px}.metric-foot{color:#718097;font-size:.72rem;margin-top:7px}
 .icon-blue{color:#4aa8ff}.icon-purple{color:#a871ff}.icon-cyan{color:#4de8ff}
 .panel{border:1px solid rgba(88,130,230,.20);background:linear-gradient(145deg,rgba(11,16,28,.97),rgba(6,10,18,.97));border-radius:15px;padding:16px;box-shadow:0 15px 40px rgba(0,0,0,.22)}
 .panel-title{font-size:1rem;font-weight:800;margin-bottom:4px}.panel-sub{color:#77849a;font-size:.75rem}.data-title{font-size:1.15rem;font-weight:800}.section-title{font-size:1.22rem;font-weight:800;margin:5px 0 2px}.section-subtitle{color:#7d8ba2;font-size:.78rem;margin-bottom:12px}
-.summary-panel{height:100%;min-height:390px}.summary-total{font-family:Orbitron,sans-serif;font-size:1.65rem;font-weight:700;text-align:center;color:#58b7ff;margin:18px 0 3px}
-.summary-ring{margin:0 auto 10px;max-width:190px}.summary-row{display:flex;justify-content:space-between;gap:12px;margin:12px 0;color:#8290a7;font-size:.8rem}.summary-row b{color:#f3f6ff}
+.summary-panel{height:100%;min-height:390px}.summary-row{display:flex;justify-content:space-between;gap:12px;margin:12px 0;color:#8290a7;font-size:.8rem}.summary-row b{color:#f3f6ff}
 [data-testid="stDataFrame"]{border:1px solid rgba(76,122,255,.20);border-radius:12px;overflow:hidden}
 div[data-baseweb="select"]>div,div[data-baseweb="input"]>div{background:#0c111e!important;border-color:rgba(76,122,255,.25)!important}div[data-baseweb="select"] span{color:#e8efff!important}
 .stSelectbox label,.stTextInput label{color:#8cdfff!important;font-weight:700!important}
 .footer{color:#59677d;font-size:.68rem;text-align:center;padding:20px 0 0}
 .small-note{color:#6f7e96;font-size:.72rem}
 .automation-note{display:flex;align-items:center;gap:10px;margin:18px 0 8px;padding:13px 15px;border:1px solid rgba(73,215,154,.25);border-radius:11px;background:linear-gradient(90deg,rgba(19,66,55,.30),rgba(12,22,38,.65));color:#b8c8da;font-size:.80rem}.automation-note b{color:#53efa5}
-.history-status{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:.72rem;font-weight:800}.history-ok{color:#55efa7;background:rgba(30,125,79,.22);border:1px solid rgba(72,234,150,.28)}.history-pending{color:#ffcb68;background:rgba(126,83,21,.20);border:1px solid rgba(255,193,77,.28)}
 [data-testid="stExpander"]{border:1px solid rgba(83,130,255,.25)!important;border-radius:11px!important;background:rgba(10,15,27,.70)!important;margin-bottom:9px!important}[data-testid="stExpander"] summary{font-weight:750!important;color:#e9f1ff!important}
 </style>
 """,
@@ -82,37 +75,17 @@ div[data-baseweb="select"]>div,div[data-baseweb="input"]>div{background:#0c111e!
 )
 
 # =========================================================
-# DADOS
+# FUNÇÕES DE TRATAMENTO DE DADOS
 # =========================================================
 def vazio():
     return pd.DataFrame(columns=["Data", "Hora", "Peso (kg)", "Lote"])
 
 
-def gerar_planilhas_simuladas():
-    """Dados de demonstração locais; nunca são enviados à planilha real."""
-    pesos = [0.42, 0.38, 0.45, 0.41, 0.39, 0.47, 0.44, 0.40]
-    resultado = {}
-    for deslocamento in range(1, 6):
-        dia = datetime.now().date() - timedelta(days=deslocamento)
-        linhas = []
-        for indice, peso in enumerate(pesos):
-            linhas.append({
-                "Data": dia.strftime("%d/%m/%Y"),
-                "Hora": f"{8 + indice:02d}:{(indice * 7) % 60:02d}:00",
-                "Peso (kg)": round(peso + deslocamento * 0.01, 2),
-                "Lote": f"SIM-{dia.strftime('%d%m')}-{indice + 1:02d}",
-            })
-        resultado[dia.strftime("%d-%m-%Y")] = pd.DataFrame(linhas)
-    return resultado
-
-
 def formatar_data_planilha(valor):
-    """Exibe datas ISO do Sheets em dd/mm/aaaa no fuso de São Paulo."""
     if pd.isna(valor) or str(valor).strip() == "":
         return None
     texto = str(valor).strip()
     try:
-        # Datas enviadas como ISO/UTC pelo Google Sheets devem respeitar Brasília.
         if "T" in texto or texto.endswith("Z"):
             data = pd.to_datetime(texto, utc=True, errors="coerce")
             if not pd.isna(data):
@@ -126,12 +99,9 @@ def formatar_data_planilha(valor):
 
 
 def formatar_hora_planilha(valor):
-    """Converte horários do Sheets sem deslocar o marco de tempo do Excel."""
     if pd.isna(valor) or str(valor).strip() == "":
         return None
     texto = str(valor).strip()
-    # O Sheets/Excel serializa uma hora isolada usando 1899-12-30. Nesse caso,
-    # 22:38:54 já é o horário mostrado na planilha, não um instante em UTC.
     marco_excel = re.match(r"^1899-12-\d{2}T(\d{2}:\d{2}:\d{2})", texto)
     if marco_excel:
         return marco_excel.group(1)
@@ -198,7 +168,6 @@ def chave_aba(nome):
 
 
 def data_da_aba(nome):
-    """Reconhece tanto abas 12-08-2026 quanto nomes com 2026-08-12."""
     texto = str(nome)
     for padrao, formato in [
         (r"(?<!\d)(\d{2}-\d{2}-\d{4})(?!\d)", "%d-%m-%Y"),
@@ -223,7 +192,6 @@ def formatar_numero(valor):
 
 
 def gerar_xlsx(df: pd.DataFrame) -> bytes:
-    """Gera XLSX sem derrubar o app se o ambiente estiver sem openpyxl."""
     buffer = io.BytesIO()
     try:
         from openpyxl import Workbook
@@ -247,7 +215,6 @@ def gerar_xlsx(df: pd.DataFrame) -> bytes:
         wb.save(buffer)
         return buffer.getvalue()
     except Exception:
-        # Fallback seguro: nunca deixa a tela inteira cair por causa do XLSX.
         return df.to_csv(index=False, sep=";").encode("utf-8-sig")
 
 
@@ -267,28 +234,33 @@ def grafico_layout(fig, height=300):
 
 
 def mostrar_metricas(df):
-    total = len(df)
+    total_caixas = len(df)
     peso_total = float(df["Peso (kg)"].sum()) if not df.empty else 0
     media = float(df["Peso (kg)"].mean()) if not df.empty else 0
-    maior = float(df["Peso (kg)"].max()) if not df.empty else 0
+    
     cards = [
-        ("⚖", "Total de Lotes", f"{total}", "Hoje", "blue"),
-        ("▣", "Peso Total (kg)", formatar_numero(peso_total), "Hoje", "cyan"),
-        ("◈", "Média por Lote", f"{formatar_numero(media)} kg", "Hoje", "purple"),
-        ("↑", "Maior Peso", f"{formatar_numero(maior)} kg", "Hoje", "purple"),
+        ("📦", "Caixas Passadas", f"{total_caixas}", "Hoje", "cyan"),
+        ("⚖", "Peso Total (kg)", formatar_numero(peso_total), "Hoje", "blue"),
+        ("◈", "Média por Caixa", f"{formatar_numero(media)} kg", "Hoje", "purple"),
     ]
-    cols = st.columns(4)
+    cols = st.columns(3)
     for col, (icon, label, value, foot, color) in zip(cols, cards):
         with col:
-            st.markdown(f"<div class='metric-card'><div class='metric-label'><span class='icon-{color}'>{icon}</span>&nbsp;&nbsp;{label}</div><div class='metric-value'>{value}</div><div class='metric-foot'>{foot}</div></div>", unsafe_allow_html=True)
+            st.markdown(
+                f"<div class='metric-card'>"
+                f"<div class='metric-label'><span class='icon-{color}'>{icon}</span>&nbsp;&nbsp;{label}</div>"
+                f"<div class='metric-value'>{value}</div>"
+                f"<div class='metric-foot'>{foot}</div>"
+                f"</div>",
+                unsafe_allow_html=True
+            )
 
 
 def resumo_dia(df):
     peso_total = float(df["Peso (kg)"].sum()) if not df.empty else 0
     media = float(df["Peso (kg)"].mean()) if not df.empty else 0
-    menor = float(df["Peso (kg)"].min()) if not df.empty else 0
-    maior = float(df["Peso (kg)"].max()) if not df.empty else 0
-    return peso_total, media, menor, maior
+    total_caixas = len(df)
+    return peso_total, media, total_caixas
 
 
 def grafico_distribuicao(df):
@@ -299,11 +271,11 @@ def grafico_distribuicao(df):
     grupos = pd.cut(df["Peso (kg)"], bins=bins, labels=labels, right=False)
     contagem = grupos.value_counts().reindex(labels, fill_value=0)
     fig = go.Figure(go.Pie(labels=contagem.index, values=contagem.values, hole=.72, textinfo="none", marker=dict(colors=["#2f80ff", "#4b6cff", "#713dff", "#8a35ff", "#b64dff"])))
-    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", height=250, margin=dict(l=5,r=5,t=5,b=5), showlegend=False, annotations=[dict(text=f"{len(df)}<br>lotes", x=.5, y=.5, font=dict(size=20, color="#fff"), showarrow=False)])
+    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", height=250, margin=dict(l=5,r=5,t=5,b=5), showlegend=False, annotations=[dict(text=f"{len(df)}<br>caixas", x=.5, y=.5, font=dict(size=20, color="#fff"), showarrow=False)])
     return fig, contagem
 
 # =========================================================
-# CARREGAMENTO
+# CARREGAMENTO (SEM SIMULAÇÃO)
 # =========================================================
 try:
     dados_abas = carregar_dados_todas_abas()
@@ -311,10 +283,6 @@ try:
 except Exception as erro:
     dados_abas = {}
     erro_api = str(erro)
-
-if st.session_state.get("modo_simulacao_amira", False):
-    # Dados reais continuam intactos; a simulação só complementa a tela atual.
-    dados_abas = {**dados_abas, **gerar_planilhas_simuladas()}
 
 lista_abas = sorted(dados_abas.keys(), key=chave_aba, reverse=True)
 if lista_abas:
@@ -328,8 +296,6 @@ else:
 # SIDEBAR
 # =========================================================
 with st.sidebar:
-    # A PNG é usada em primeiro lugar (fundo transparente); a JPG antiga é
-    # mantida como reserva até a nova logo ser enviada ao repositório.
     if os.path.exists("logo.png"):
         st.image("logo.png", use_container_width=True)
     elif os.path.exists("logo.jpg"):
@@ -391,7 +357,6 @@ if menu == "📋  Registro e Dados":
         mostrar_metricas(df)
         st.markdown("<br>", unsafe_allow_html=True)
 
-        # Dados do Dia: tabela + resumo lateral
         st.markdown("<div class='panel'><div class='data-title'>Dados do Dia</div><div class='panel-sub'>Registros da produção • <b style='color:#dce7ff'>" + str(dia) + "</b></div></div>", unsafe_allow_html=True)
         st.markdown("<br>", unsafe_allow_html=True)
         left, right = st.columns([3.35, 1.05])
@@ -400,7 +365,6 @@ if menu == "📋  Registro e Dados":
             if df.empty:
                 st.info("A aba selecionada ainda não possui registros.")
             else:
-                # tabela compacta no estilo da referência
                 page_size = 7
                 total_pages = max(1, (len(df) + page_size - 1) // page_size)
                 page_key = f"page_{dia}"
@@ -425,17 +389,20 @@ if menu == "📋  Registro e Dados":
                             st.session_state[page_key] = min(total_pages - 1, pagina + 1); st.rerun()
 
         with right:
-            peso_total, media, menor, maior = resumo_dia(df)
+            peso_total, media, total_caixas = resumo_dia(df)
             st.markdown("<div class='panel summary-panel'><div class='panel-title'>Resumo do Dia</div><div class='panel-sub'>Indicadores principais</div>", unsafe_allow_html=True)
-            # anel visual via Plotly
             ring = go.Figure(go.Pie(values=[max(peso_total, 0.001), 1], labels=["Total", ""], hole=.78, textinfo="none", marker=dict(colors=["#3d8cff", "#7d32ff"], line=dict(color="#0a0e18", width=4))))
             ring.update_layout(paper_bgcolor="rgba(0,0,0,0)", margin=dict(l=0,r=0,t=0,b=0), height=175, showlegend=False, annotations=[dict(text=f"{formatar_numero(peso_total)}<br><span style='font-size:12px'>kg</span>", x=.5, y=.5, font=dict(size=19,color="#fff"), showarrow=False)])
             st.plotly_chart(ring, use_container_width=True, config={"displayModeBar": False})
-            st.markdown(f"<div class='summary-row'><span>↗ Média por lote</span><b>{formatar_numero(media)} kg</b></div><div class='summary-row'><span>↑ Maior peso</span><b>{formatar_numero(maior)} kg</b></div><div class='summary-row'><span>↓ Menor peso</span><b>{formatar_numero(menor)} kg</b></div><div class='summary-row'><span>◉ Lotes registrados</span><b>{len(df)}</b></div></div>", unsafe_allow_html=True)
+            st.markdown(
+                f"<div class='summary-row'><span>📦 Caixas passadas</span><b>{total_caixas}</b></div>"
+                f"<div class='summary-row'><span>↗ Média por caixa</span><b>{formatar_numero(media)} kg</b></div>"
+                f"<div class='summary-row'><span>⚖ Peso total acumulado</span><b>{formatar_numero(peso_total)} kg</b></div></div>", 
+                unsafe_allow_html=True
+            )
 
         st.markdown("<div class='automation-note'>✓ <span><b>Novo dia automático:</b> a planilha do próximo dia é criada pela balança assim que a primeira pesagem é enviada. Não é preciso criar uma aba manualmente.</span></div>", unsafe_allow_html=True)
 
-        # Visão Geral exatamente como na referência
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("<div class='panel-title' style='font-size:1.18rem'>Visão Geral</div>", unsafe_allow_html=True)
         st.markdown("<div class='section-subtitle'>Análise visual da produção do dia</div>", unsafe_allow_html=True)
@@ -457,12 +424,12 @@ if menu == "📋  Registro e Dados":
                 st.markdown("<div class='small-note'>" + " • ".join([f"{k}: {v}" for k,v in contagem.items() if v]) + "</div>", unsafe_allow_html=True)
             else: st.info("Sem dados")
         with g3:
-            st.markdown("<div class='panel-title'>Lotes por período</div>", unsafe_allow_html=True)
+            st.markdown("<div class='panel-title'>Caixas por período</div>", unsafe_allow_html=True)
             if not df.empty:
                 temp = df.copy(); temp["Hora_dt"] = pd.to_datetime(temp["Hora"].astype(str), errors="coerce")
                 temp["Hora"] = temp["Hora_dt"].dt.hour
-                por_hora = temp.dropna(subset=["Hora"]).groupby("Hora").size().reset_index(name="Lotes")
-                fig = px.bar(por_hora, x="Hora", y="Lotes")
+                por_hora = temp.dropna(subset=["Hora"]).groupby("Hora").size().reset_index(name="Caixas")
+                fig = px.bar(por_hora, x="Hora", y="Caixas")
                 fig.update_traces(marker_color="#713dff")
                 fig.update_xaxes(dtick=1)
                 st.plotly_chart(grafico_layout(fig, 270), use_container_width=True, config={"displayModeBar": False})
@@ -494,7 +461,7 @@ elif menu == "📊  Gráficos e Análises":
                 st.plotly_chart(grafico_layout(fig),use_container_width=True,config={"displayModeBar":False})
         resumo=[]
         for nome,temp in dados_abas.items():
-            if not temp.empty: resumo.append({"Data":nome,"Peso total (kg)":temp["Peso (kg)"].sum(),"Média (kg)":temp["Peso (kg)"].mean(),"Lotes":len(temp)})
+            if not temp.empty: resumo.append({"Data":nome,"Peso total (kg)":temp["Peso (kg)"].sum(),"Média (kg)":temp["Peso (kg)"].mean(),"Caixas":len(temp)})
         rdf=pd.DataFrame(resumo)
         if not rdf.empty:
             c3,c4=st.columns(2)
@@ -502,11 +469,11 @@ elif menu == "📊  Gráficos e Análises":
                 fig=px.bar(rdf,x="Data",y="Peso total (kg)"); fig.update_traces(marker_color="#2f80ff")
                 st.plotly_chart(grafico_layout(fig),use_container_width=True,config={"displayModeBar":False})
             with c4:
-                fig=px.bar(rdf,x="Data",y="Lotes"); fig.update_traces(marker_color="#8a35ff")
+                fig=px.bar(rdf,x="Data",y="Caixas"); fig.update_traces(marker_color="#8a35ff")
                 st.plotly_chart(grafico_layout(fig),use_container_width=True,config={"displayModeBar":False})
 
 # =========================================================
-# HISTÓRICO DE PLANILHAS
+# HISTÓRICO DE PLANILHAS (DESTAQUE VERDE)
 # =========================================================
 else:
     st.markdown("<div class='section-title'>Histórico de Planilhas</div><div class='section-subtitle'>Confira se cada dia já foi lançado. Clique na seta para ver os dados completos.</div>", unsafe_allow_html=True)
@@ -519,33 +486,29 @@ else:
             if data:
                 abas_por_data[data] = (nome, temp)
 
-        acao_simulacao, texto_simulacao = st.columns([1.25, 3.75])
-        with acao_simulacao:
-            if st.button("◈  Carregar simulação", key="ativar_simulacao", use_container_width=True):
-                st.session_state["modo_simulacao_amira"] = True
-                st.rerun()
-        with texto_simulacao:
-            st.caption("Cria cinco dias de exemplo apenas nesta tela. Não envia nem altera dados da planilha Google.")
-
-        st.markdown("<div class='panel-title'>Conferência de lançamentos</div><div class='section-subtitle'>Clique na seta de um dia para abrir somente a planilha dele. Em um dia pendente, use “Marcar como enviado” após o trabalhador encaminhá-la.</div>", unsafe_allow_html=True)
+        st.markdown("<div class='panel-title'>Conferência de lançamentos</div><div class='section-subtitle'>As planilhas lançadas aparecem destacadas em verde para facilitar a visualização do trabalhador.</div>", unsafe_allow_html=True)
+        
         referencia = max([datetime.now().date(), *abas_por_data.keys()]) if abas_por_data else datetime.now().date()
+        enviados = st.session_state.setdefault("dias_enviados_amira", set())
+        
         for indice in range(14):
             data = referencia - timedelta(days=indice)
             nome, temp = abas_por_data.get(data, (None, vazio()))
             encontrada = nome is not None and not temp.empty
-            enviados = st.session_state.setdefault("dias_enviados_amira", set())
             confirmado = data.isoformat() in enviados
+            
             if encontrada:
-                texto_status = "✓ OK — lançada"
+                texto_status = "<span style='color: #00e676; font-weight: bold;'>🟢 ✓ OK — lançada</span>"
             elif confirmado:
-                texto_status = "✓ Enviado"
+                texto_status = "<span style='color: #00e676; font-weight: bold;'>🟢 ✓ Enviado</span>"
             else:
-                texto_status = "! Pendente"
+                texto_status = "<span style='color: #ff9800;'>! Pendente</span>"
+                
             with st.expander(f"{data.strftime('%d/%m/%Y')}   •   {texto_status}", expanded=False):
                 if encontrada:
                     tabela_dia = temp.copy().reset_index(drop=True)
                     tabela_dia.insert(0, "#", tabela_dia.index + 1)
-                    st.caption(f"Planilha completa de {data.strftime('%d/%m/%Y')} — {len(tabela_dia)} registros.")
+                    st.markdown(f"<p style='color: #00e676; font-weight: bold;'>🟢 Planilha completa de {data.strftime('%d/%m/%Y')} — {len(tabela_dia)} caixas registradas.</p>", unsafe_allow_html=True)
                     st.dataframe(tabela_dia, use_container_width=True, hide_index=True, column_config={"#": st.column_config.NumberColumn("#", width="small"), "Peso (kg)": st.column_config.NumberColumn("Peso (kg)", format="%.2f")})
                 else:
                     st.info("Nenhuma planilha desse dia foi encontrada no sistema.")
@@ -560,8 +523,8 @@ else:
         for nome in sorted(lista_abas, key=chave_aba, reverse=True):
             temp = dados_abas.get(nome, vazio())
             rotulo = rotulo_aba(nome)
-            with st.expander(f"{rotulo}   •   ✓ OK — planilha lançada", expanded=False):
-                st.caption(f"{len(temp)} registros encontrados para {rotulo}.")
+            with st.expander(f"🟢 {rotulo}   •   <span style='color: #00e676; font-weight: bold;'>✓ OK — planilha lançada</span>", expanded=False):
+                st.markdown(f"<p style='color: #00e676; font-weight: bold;'>🟢 {len(temp)} caixas registradas para {rotulo}.</p>", unsafe_allow_html=True)
                 if temp.empty:
                     st.info("A planilha existe, mas ainda não possui registros.")
                 else:
