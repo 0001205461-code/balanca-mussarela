@@ -49,9 +49,9 @@ section[data-testid="stSidebar"] .stButton>button:hover{border-color:rgba(0,210,
 section[data-testid="stSidebar"] .stButton>button[kind="primary"]{background:linear-gradient(90deg,rgba(21,116,255,.98),rgba(112,49,235,.98))!important;color:white!important;border-color:rgba(138,201,255,.8)!important;box-shadow:0 0 22px rgba(71,100,255,.30)!important}
 .sidebar-status{margin-top:55px;padding:14px;border:1px solid rgba(83,130,255,.20);border-radius:12px;background:rgba(10,14,25,.8)}
 .dot{display:inline-block;width:8px;height:8px;background:#20e889;border-radius:50%;box-shadow:0 0 10px #20e889;margin-right:7px}
-.top-title{font-size:1.8rem;font-weight:800;margin:0}.top-title span{color:#39a7ff}.top-subtitle{color:#a0aabd;font-size:.92rem;margin-top:4px}
+.top-title{font-size:2.4rem;font-weight:800;margin:0}.top-title span{color:#39a7ff}.top-subtitle{color:#a0aabd;font-size:1.05rem;margin-top:4px}
 .status-pill{display:inline-flex;align-items:center;gap:5px;padding:8px 12px;border:1px solid rgba(71,221,156,.25);background:rgba(18,48,39,.35);border-radius:999px;color:#48e99a;font-size:.78rem;font-weight:700}
-.hero-line{height:1px;background:linear-gradient(90deg,rgba(60,120,255,.35),rgba(130,60,255,.22),transparent);margin:16px 0 18px}
+.hero-line{height:1px;background:linear-gradient(90deg,rgba(60,120,255,.55),rgba(130,60,255,.32),transparent);margin:22px 0 26px}
 .stButton>button,.stDownloadButton>button{border-radius:10px!important;border:1px solid rgba(68,137,255,.55)!important;background:linear-gradient(100deg,#0876df,#5631d6)!important;color:#fff!important;font-weight:700!important;min-height:42px!important;box-shadow:0 0 18px rgba(47,128,255,.16);transition:.2s ease!important}
 .stButton>button:hover,.stDownloadButton>button:hover{transform:translateY(-2px);box-shadow:0 0 25px rgba(103,67,255,.35)}
 .metric-card{position:relative;overflow:hidden;min-height:118px;padding:18px;border-radius:15px;border:1px solid rgba(87,125,210,.22);background:linear-gradient(145deg,rgba(14,19,32,.97),rgba(7,11,20,.92));box-shadow:0 12px 35px rgba(0,0,0,.24);transition:.25s ease}
@@ -286,12 +286,10 @@ except Exception as erro:
 
 lista_abas = sorted(dados_abas.keys(), key=chave_aba, reverse=True)
 
-# Define o dia atual globalmente para ser usado no botão de download
+# Define o dia atual globalmente
 dia_atual = st.session_state.get("dia_selecionado", lista_abas[0] if lista_abas else None)
 if dia_atual not in lista_abas and lista_abas:
     dia_atual = lista_abas[0]
-
-df = dados_abas.get(dia_atual, vazio()) if dia_atual else vazio()
 
 # =========================================================
 # SIDEBAR
@@ -317,15 +315,33 @@ with st.sidebar:
     st.markdown("<div class='sidebar-status'><div style='font-weight:800;'>Sistema AMIRA</div><div style='color:#7f8da4;font-size:.75rem;margin-top:5px;'><span class='dot'></span>Monitoramento ativo</div></div>", unsafe_allow_html=True)
     st.markdown("<div class='footer'>© 2026 AMIRA • SENAI<br>IoT • Automação • Precisão</div>", unsafe_allow_html=True)
 
+
 # =========================================================
 # CABEÇALHO + AÇÕES
 # =========================================================
 header_left, header_right = st.columns([2.9, 2.1])
-with header_left:
-    st.markdown("<div class='top-title'>Bem-vindo à <span>AMIRA</span></div><div class='top-subtitle'>Sistema de Monitoramento e Registro de Produção</div>", unsafe_allow_html=True)
 
 with header_right:
-    # 1️⃣ BOTÕES JUNTOS NO CABEÇALHO (RECARREGAR E BAIXAR)
+    # Empurra os elementos pra baixo para escapar da clickbox do Streamlit/GitHub
+    st.markdown("<div style='margin-top: 35px;'></div>", unsafe_allow_html=True)
+    
+    # Seletor de data voltou para o canto direito, visível apenas na tela de Registros
+    if menu == "📋  Registro e Dados" and lista_abas:
+        dia_selecionado_novo = st.selectbox(
+            "📅 Dia de Produção",
+            options=lista_abas,
+            format_func=rotulo_aba,
+            index=lista_abas.index(dia_atual) if dia_atual in lista_abas else 0,
+        )
+        if dia_selecionado_novo != dia_atual:
+            st.session_state["dia_selecionado"] = dia_selecionado_novo
+            st.rerun()
+        dia_atual = dia_selecionado_novo
+
+    # Gera o DataFrame do dia atual após o seletor
+    df = dados_abas.get(dia_atual, vazio()) if dia_atual else vazio()
+
+    # Botões juntos e afastados do topo
     b1, b2 = st.columns(2)
     with b1:
         if st.button("🔄 Recarregar Dados", use_container_width=True):
@@ -341,22 +357,23 @@ with header_right:
                 use_container_width=True
             )
 
+with header_left:
+    # Títulos dinâmicos e grandes por página
+    if menu == "📋  Registro e Dados":
+        st.markdown("<div class='top-title'>Bem-vindo à <span>AMIRA</span></div><div class='top-subtitle'>Sistema de Monitoramento e Registro de Produção</div>", unsafe_allow_html=True)
+    elif menu == "📊  Gráficos e Análises":
+        st.markdown("<div class='top-title'><span>Gráficos</span> e Análises</div><div class='top-subtitle'>Explore o histórico e compare dias e meses de produção.</div>", unsafe_allow_html=True)
+    else:
+        st.markdown("<div class='top-title'><span>Histórico</span> de Planilhas</div><div class='top-subtitle'>Controle de lançamentos no sistema da empresa.</div>", unsafe_allow_html=True)
+
+# Linha divisória
+st.markdown("<div class='hero-line'></div>", unsafe_allow_html=True)
+
+
 # =========================================================
 # 1. TELA: REGISTRO E DADOS
 # =========================================================
 if menu == "📋  Registro e Dados":
-    
-    # 2️⃣ SELETOR DE DIA DE PRODUÇÃO AGORA FICA AQUI EM CIMA DOS DADOS
-    if lista_abas:
-        novo_dia = st.selectbox(
-            "📅 Selecione o Dia de Produção:",
-            options=lista_abas,
-            format_func=rotulo_aba,
-            index=lista_abas.index(dia_atual) if dia_atual in lista_abas else 0,
-        )
-        if novo_dia != dia_atual:
-            st.session_state["dia_selecionado"] = novo_dia
-            st.rerun()
             
     st.markdown("<div class='section-title'>Dados do Dia</div>", unsafe_allow_html=True)
     
@@ -384,7 +401,7 @@ if menu == "📋  Registro e Dados":
     with right:
         peso_total, media, total_caixas = resumo_dia(df)
         
-        # 3️⃣ HTML 100% SEM RECUO (Isso impede de virar "bloco de código")
+        # HTML sem recuos
         html_resumo = f"""<div class='panel summary-panel'>
 <div class='panel-title'>Resumo do Dia</div>
 <div class='panel-sub'>Indicadores principais</div>
@@ -425,12 +442,12 @@ if menu == "📋  Registro e Dados":
 # 2. TELA: GRÁFICOS E ANÁLISES
 # =========================================================
 elif menu == "📊  Gráficos e Análises":
-    st.markdown("<div class='section-title'>Gráficos e Análises</div><div class='section-subtitle'>Explore o histórico e compare dias e meses de produção.</div>", unsafe_allow_html=True)
     
     if not lista_abas:
         st.info("Aguardando registros para gerar as análises.")
     else:
-        st.markdown("<br><div class='panel-title' style='font-size:1.15rem;'>Comparativo Diário</div><div class='section-subtitle'>Produção dia a dia</div>", unsafe_allow_html=True)
+        # Cor de "Comparativo Diário" ajustada para azul
+        st.markdown("<div class='panel-title' style='font-size:1.15rem; color:#00d2ff;'>Comparativo Diário</div><div class='section-subtitle'>Produção dia a dia</div>", unsafe_allow_html=True)
         resumo = []
         for nome, temp in dados_abas.items():
             if not temp.empty: 
@@ -485,7 +502,6 @@ elif menu == "📊  Gráficos e Análises":
 # 3. TELA: HISTÓRICO DE PLANILHAS
 # =========================================================
 else:
-    st.markdown("<div class='section-title'>Histórico de Planilhas</div><div class='section-subtitle'>Controle de lançamentos: confirme quais planilhas já foram passadas para o sistema da empresa.</div>", unsafe_allow_html=True)
     
     if "planilhas_lancadas" not in st.session_state:
         st.session_state["planilhas_lancadas"] = set()
@@ -504,7 +520,8 @@ else:
             else:
                 titulo = f"🟠 {rotulo}   •   ! Pendente de lançamento"
             
-            with st.expander(titulo, expanded=not esta_lancada):
+            # expanded=False garante que TODAS venham fechadas por padrão
+            with st.expander(titulo, expanded=False):
                 if not esta_lancada:
                     st.warning("⚠️ Esta planilha ainda não foi marcada como lançada no sistema oficial.")
                     if st.button(f"✓ Confirmar Lançamento — {rotulo}", key=f"btn_{nome}", type="primary"):
