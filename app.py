@@ -321,12 +321,18 @@ with st.sidebar:
 # =========================================================
 header_left, header_right = st.columns([2.9, 2.1])
 
-with header_right:
-    # Empurra os elementos pra baixo para escapar da clickbox do Streamlit/GitHub
-    st.markdown("<div style='margin-top: 35px;'></div>", unsafe_allow_html=True)
-    
-    # Seletor de data voltou para o canto direito, visível apenas na tela de Registros
+with header_left:
+    # Títulos dinâmicos e grandes por página
+    if menu == "📋  Registro e Dados":
+        st.markdown("<div class='top-title'>Bem-vindo à <span>AMIRA</span></div><div class='top-subtitle'>Sistema de Monitoramento e Registro de Produção</div>", unsafe_allow_html=True)
+    elif menu == "📊  Gráficos e Análises":
+        st.markdown("<div class='top-title'><span>Gráficos</span> e Análises</div><div class='top-subtitle'>Explore o histórico e compare dias e meses de produção.</div>", unsafe_allow_html=True)
+    else:
+        st.markdown("<div class='top-title'><span>Histórico</span> de Planilhas</div><div class='top-subtitle'>Controle de lançamentos no sistema da empresa.</div>", unsafe_allow_html=True)
+
+    # Seletor de data na esquerda, ajustado para alinhar com os botões
     if menu == "📋  Registro e Dados" and lista_abas:
+        st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
         dia_selecionado_novo = st.selectbox(
             "📅 Dia de Produção",
             options=lista_abas,
@@ -338,10 +344,14 @@ with header_right:
             st.rerun()
         dia_atual = dia_selecionado_novo
 
-    # Gera o DataFrame do dia atual após o seletor
-    df = dados_abas.get(dia_atual, vazio()) if dia_atual else vazio()
+# Gera o DataFrame do dia atual após o seletor (movido para cá para garantir que tenha a data atualizada)
+df = dados_abas.get(dia_atual, vazio()) if dia_atual else vazio()
 
-    # Botões juntos e afastados do topo
+with header_right:
+    # Empurra os elementos pra baixo para alinhar com o seletor da esquerda e escapar da clickbox do GitHub
+    st.markdown("<div style='margin-top: 110px;'></div>", unsafe_allow_html=True)
+    
+    # Botões juntos
     b1, b2 = st.columns(2)
     with b1:
         if st.button("🔄 Recarregar Dados", use_container_width=True):
@@ -356,15 +366,6 @@ with header_right:
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 use_container_width=True
             )
-
-with header_left:
-    # Títulos dinâmicos e grandes por página
-    if menu == "📋  Registro e Dados":
-        st.markdown("<div class='top-title'>Bem-vindo à <span>AMIRA</span></div><div class='top-subtitle'>Sistema de Monitoramento e Registro de Produção</div>", unsafe_allow_html=True)
-    elif menu == "📊  Gráficos e Análises":
-        st.markdown("<div class='top-title'><span>Gráficos</span> e Análises</div><div class='top-subtitle'>Explore o histórico e compare dias e meses de produção.</div>", unsafe_allow_html=True)
-    else:
-        st.markdown("<div class='top-title'><span>Histórico</span> de Planilhas</div><div class='top-subtitle'>Controle de lançamentos no sistema da empresa.</div>", unsafe_allow_html=True)
 
 # Linha divisória
 st.markdown("<div class='hero-line'></div>", unsafe_allow_html=True)
