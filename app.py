@@ -439,14 +439,16 @@ if menu == "📋  Registro e Dados":
 # GRÁFICOS E ANÁLISES
 # =========================================================
 elif menu == "📊  Gráficos e Análises":
-    st.markdown("<div class='section-title'>Gráficos e Análises</div><div class='section-subtitle'>Explore o histórico e compare dias de produção.</div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>Gráficos e Análises</div><div class='section-subtitle'>Explore o histórico e compare dias e meses de produção.</div>", unsafe_allow_html=True)
     if not lista_abas:
         st.info("Aguardando registros para gerar as análises.")
     else:
+        # --- 1. VISÃO DO DIA SELECIONADO ---
         dia = st.selectbox("Dia analisado", lista_abas, index=lista_abas.index(dia_atual))
         df = dados_abas.get(dia, vazio())
         mostrar_metricas(df)
         st.markdown("<br>", unsafe_allow_html=True)
+        
         c1, c2 = st.columns(2)
         with c1:
             st.markdown("<div class='panel-title'>Peso ao longo do dia</div>", unsafe_allow_html=True)
@@ -459,19 +461,66 @@ elif menu == "📊  Gráficos e Análises":
             if not df.empty:
                 fig=px.histogram(df,x="Peso (kg)",nbins=8); fig.update_traces(marker_color="#7d4cff")
                 st.plotly_chart(grafico_layout(fig),use_container_width=True,config={"displayModeBar":False})
+        
+        # --- 2. COMPARATIVO DE DIAS RECENTES ---
+        st.markdown("<br><div class='panel-title' style='font-size:1.15rem;'>Comparativo Diário</div><div class='section-subtitle'>Produção dia a dia</div>", unsafe_allow_html=True)
         resumo=[]
         for nome,temp in dados_abas.items():
-            if not temp.empty: resumo.append({"Data":nome,"Peso total (kg)":temp["Peso (kg)"].sum(),"Média (kg)":temp["Peso (kg)"].mean(),"Caixas":len(temp)})
+            if not temp.empty: 
+                resumo.append({"Data":nome, "Peso total (kg)":temp["Peso (kg)"].sum(), "Caixas":len(temp)})
         rdf=pd.DataFrame(resumo)
+        
         if not rdf.empty:
             c3,c4=st.columns(2)
             with c3:
+                st.markdown("<div class='panel-title'>Peso Diário (kg)</div>", unsafe_allow_html=True)
                 fig=px.bar(rdf,x="Data",y="Peso total (kg)"); fig.update_traces(marker_color="#2f80ff")
                 st.plotly_chart(grafico_layout(fig),use_container_width=True,config={"displayModeBar":False})
             with c4:
+                st.markdown("<div class='panel-title'>Caixas por Dia</div>", unsafe_allow_html=True)
                 fig=px.bar(rdf,x="Data",y="Caixas"); fig.update_traces(marker_color="#8a35ff")
                 st.plotly_chart(grafico_layout(fig),use_container_width=True,config={"displayModeBar":False})
 
+        # --- 3. ANÁLISE DE LONGO PRAZO (MENSAL/ANUAL) ---
+        st.markdown("<br><div class='panel-title' style='font-size:1.15rem; color:#00d2ff;'>Análise de Longo Prazo (Mensal)</div><div class='section-subtitle'>Comparativo histórico agrupado por mês e ano para controle gerencial.</div>", unsafe_allow_html=True)
+        
+        long_term_data = []
+        for nome, temp in dados_abas.items():
+            if not temp.empty:
+                dt = data_da_aba(nome)
+                if dt:
+                    long_term_data.append({
+                        "Ano": str(dt.year),
+                        "Mês_Num": dt.month,
+                        "Mês/Ano": f"{dt.month:02d}/{dt.year}",
+                        "Peso total (kg)": temp["Peso (kg)"].sum(),
+                        "Caixas": len(temp)
+                    })
+        
+        if long_term_data:
+            df_lt = pd.DataFrame(long_term_data)
+            # Agrupa os dados somando os dias dentro de cada mês/ano
+            df_grp = df_lt.groupby(["Ano", "Mês_Num", "Mês/Ano"]).sum().reset_index()
+            # Ordena cronologicamente
+            df_grp = df_grp.sort_values(by=["Ano", "Mês_Num"])
+            
+            lt1, lt2 = st.columns(2)
+            with lt1:
+                st.markdown("<div class='panel-title'>Produção Mensal Acumulada (kg)</div>", unsafe_allow_html=True)
+                # Gráfico de barras separando por Ano (cores diferentes)
+                fig_lt1 = px.bar(df_grp, x="Mês/Ano", y="Peso total (kg)", color="Ano", 
+                                 color_discrete_sequence=["#00d2ff", "#2f80ff", "#8a35ff"])
+                st.plotly_chart(grafico_layout(fig_lt1), use_container_width=True, config={"displayModeBar": False})
+            
+            with lt2:
+                st.markdown("<div class='panel-title'>Volume Mensal (Qtd. Caixas)</div>", unsafe_allow_html=True)
+                # Gráfico de linha com marcadores mostrando o crescimento/queda de caixas
+                fig_lt2 = px.line(df_grp, x="Mês/Ano", y="Caixas", color="Ano", markers=True, 
+                                  color_discrete_sequence=["#00d2ff", "#2f80ff", "#8a35ff"])
+                fig_lt2.update_traces(line_width=3, marker=dict(size=8))
+                st.plotly_chart(grafico_layout(fig_lt2), use_container_width=True, config={"displayModeBar": False})
+        else:
+            st.info("Aguardando dados históricos suficientes para gerar gráficos mensais.")
 # =========================================================
 # HISTÓRICO DE PLANILHAS (COM CHECKLIST DE LANÇAMENTO)
 # =========================================================
