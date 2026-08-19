@@ -1,7 +1,6 @@
 import io
 import os
 import re
-import textwrap
 from datetime import datetime, timedelta
 
 import pandas as pd
@@ -276,7 +275,7 @@ def grafico_distribuicao(df):
     return fig, contagem
 
 # =========================================================
-# CARREGAMENTO (SEM SIMULAÇÃO)
+# CARREGAMENTO E ESTADO GLOBAL
 # =========================================================
 try:
     dados_abas = carregar_dados_todas_abas()
@@ -286,6 +285,13 @@ except Exception as erro:
     erro_api = str(erro)
 
 lista_abas = sorted(dados_abas.keys(), key=chave_aba, reverse=True)
+
+# Define o dia atual globalmente para ser usado no botão de download
+dia_atual = st.session_state.get("dia_selecionado", lista_abas[0] if lista_abas else None)
+if dia_atual not in lista_abas and lista_abas:
+    dia_atual = lista_abas[0]
+
+df = dados_abas.get(dia_atual, vazio()) if dia_atual else vazio()
 
 # =========================================================
 # SIDEBAR
@@ -319,41 +325,44 @@ with header_left:
     st.markdown("<div class='top-title'>Bem-vindo à <span>AMIRA</span></div><div class='top-subtitle'>Sistema de Monitoramento e Registro de Produção</div>", unsafe_allow_html=True)
 
 with header_right:
-    # 1️⃣ SELETOR DE DIA DE VOLTA AO CABEÇALHO
-    if lista_abas:
-        dia_selecionado_estado = st.session_state.get("dia_selecionado", lista_abas[0])
-        if dia_selecionado_estado not in lista_abas:
-            dia_selecionado_estado = lista_abas[0]
-            
-        dia_atual = st.selectbox(
-            "📅 Dia de Produção",
-            options=lista_abas,
-            format_func=rotulo_aba,
-            index=lista_abas.index(dia_selecionado_estado),
-        )
-        st.session_state["dia_selecionado"] = dia_atual
-    else:
-        dia_atual = None
-        
-    # BOTÃO PARA RECARREGAR OS DADOS
-    if st.button("🔄 Recarregar Dados", use_container_width=True):
-        carregar_dados_todas_abas.clear()
-        st.rerun()
-
-# DEFINIÇÃO DO DF APÓS ESCOLHER O DIA NO SELETOR
-df = dados_abas.get(dia_atual, vazio()) if dia_atual else vazio()
+    # 1️⃣ BOTÕES JUNTOS NO CABEÇALHO (RECARREGAR E BAIXAR)
+    b1, b2 = st.columns(2)
+    with b1:
+        if st.button("🔄 Recarregar Dados", use_container_width=True):
+            carregar_dados_todas_abas.clear()
+            st.rerun()
+    with b2:
+        if dia_atual and not df.empty:
+            st.download_button(
+                label="⬇️ Baixar Planilha",
+                data=gerar_xlsx(df),
+                file_name=f"AMIRA_Producao_{rotulo_aba(dia_atual).replace('/', '-')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True
+            )
 
 # =========================================================
 # 1. TELA: REGISTRO E DADOS
 # =========================================================
 if menu == "📋  Registro e Dados":
+    
+    # 2️⃣ SELETOR DE DIA DE PRODUÇÃO AGORA FICA AQUI EM CIMA DOS DADOS
+    if lista_abas:
+        novo_dia = st.selectbox(
+            "📅 Selecione o Dia de Produção:",
+            options=lista_abas,
+            format_func=rotulo_aba,
+            index=lista_abas.index(dia_atual) if dia_atual in lista_abas else 0,
+        )
+        if novo_dia != dia_atual:
+            st.session_state["dia_selecionado"] = novo_dia
+            st.rerun()
+            
     st.markdown("<div class='section-title'>Dados do Dia</div>", unsafe_allow_html=True)
     
-    # 2️⃣ CARDS DE MÉTRICAS (QUADRADOS) DE VOLTA
     mostrar_metricas(df)
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # Divide a tela entre Tabela (Esquerda) e Resumo (Direita)
     left, right = st.columns([2.2, 1])
     
     with left:
@@ -375,29 +384,24 @@ if menu == "📋  Registro e Dados":
     with right:
         peso_total, media, total_caixas = resumo_dia(df)
         
-        # 3️⃣ PROTEÇÃO DO CÓDIGO HTML COM TEXTWRAP (Isso impede que vire um "bloco de código")
-        html_resumo = textwrap.dedent(f"""
-        <div class='panel summary-panel'>
-            <div class='panel-title'>Resumo do Dia</div>
-            <div class='panel-sub'>Indicadores principais</div>
-            
-            <div style='display:flex; justify-content:center; align-items:center; padding: 30px 0 25px;'>
-                <div style='width: 145px; height: 145px; border-radius: 50%; background: conic-gradient(#3d8cff 85%, rgba(255,255,255,0.05) 85%); display: flex; justify-content: center; align-items: center; box-shadow: 0 0 20px rgba(61,140,255,0.15);'>
-                    <div style='width: 125px; height: 125px; border-radius: 50%; background: #080c14; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 1px solid rgba(88,130,230,.15);'>
-                        <span style="font-family:'Orbitron', sans-serif; font-size: 1.35rem; font-weight: 800; color: #fff;">{formatar_numero(peso_total)}</span>
-                        <span style="font-size: 0.75rem; color: #77849a; margin-top: 2px;">kg</span>
-                    </div>
-                </div>
-            </div>
-            
-            <div class='summary-row'><span>📦 Caixas passadas</span><b style='color:#fff;'>{total_caixas}</b></div>
-            <div class='summary-row'><span>↗ Média por caixa</span><b style='color:#fff;'>{formatar_numero(media)} kg</b></div>
-            <div class='summary-row'><span>⚖ Peso total acumulado</span><b style='color:#fff;'>{formatar_numero(peso_total)} kg</b></div>
-        </div>
-        """)
+        # 3️⃣ HTML 100% SEM RECUO (Isso impede de virar "bloco de código")
+        html_resumo = f"""<div class='panel summary-panel'>
+<div class='panel-title'>Resumo do Dia</div>
+<div class='panel-sub'>Indicadores principais</div>
+<div style='display:flex; justify-content:center; align-items:center; padding: 30px 0 25px;'>
+<div style='width: 145px; height: 145px; border-radius: 50%; background: conic-gradient(#3d8cff 85%, rgba(255,255,255,0.05) 85%); display: flex; justify-content: center; align-items: center; box-shadow: 0 0 20px rgba(61,140,255,0.15);'>
+<div style='width: 125px; height: 125px; border-radius: 50%; background: #080c14; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 1px solid rgba(88,130,230,.15);'>
+<span style="font-family:'Orbitron', sans-serif; font-size: 1.35rem; font-weight: 800; color: #fff;">{formatar_numero(peso_total)}</span>
+<span style="font-size: 0.75rem; color: #77849a; margin-top: 2px;">kg</span>
+</div>
+</div>
+</div>
+<div class='summary-row'><span>📦 Caixas passadas</span><b style='color:#fff;'>{total_caixas}</b></div>
+<div class='summary-row'><span>↗ Média por caixa</span><b style='color:#fff;'>{formatar_numero(media)} kg</b></div>
+<div class='summary-row'><span>⚖ Peso total acumulado</span><b style='color:#fff;'>{formatar_numero(peso_total)} kg</b></div>
+</div>"""
         st.markdown(html_resumo, unsafe_allow_html=True)
         
-    # --- GRÁFICOS DIÁRIOS NA TELA PRINCIPAL ---
     st.markdown("<br><br><div class='section-title' style='font-size: 1.2rem;'>Desempenho do Dia</div>", unsafe_allow_html=True)
     g1, g2 = st.columns(2)
     
@@ -418,7 +422,7 @@ if menu == "📋  Registro e Dados":
             st.plotly_chart(grafico_layout(fig2), use_container_width=True, config={"displayModeBar": False})
 
 # =========================================================
-# 2. TELA: GRÁFICOS E ANÁLISES (LONGO PRAZO)
+# 2. TELA: GRÁFICOS E ANÁLISES
 # =========================================================
 elif menu == "📊  Gráficos e Análises":
     st.markdown("<div class='section-title'>Gráficos e Análises</div><div class='section-subtitle'>Explore o histórico e compare dias e meses de produção.</div>", unsafe_allow_html=True)
@@ -426,7 +430,6 @@ elif menu == "📊  Gráficos e Análises":
     if not lista_abas:
         st.info("Aguardando registros para gerar as análises.")
     else:
-        # Comparativo Diário
         st.markdown("<br><div class='panel-title' style='font-size:1.15rem;'>Comparativo Diário</div><div class='section-subtitle'>Produção dia a dia</div>", unsafe_allow_html=True)
         resumo = []
         for nome, temp in dados_abas.items():
@@ -447,7 +450,6 @@ elif menu == "📊  Gráficos e Análises":
                 fig.update_traces(marker_color="#8a35ff")
                 st.plotly_chart(grafico_layout(fig), use_container_width=True, config={"displayModeBar": False})
 
-        # Análise de Longo Prazo (Mensal)
         st.markdown("<br><div class='panel-title' style='font-size:1.15rem; color:#00d2ff;'>Análise de Longo Prazo (Mensal)</div><div class='section-subtitle'>Comparativo histórico agrupado por mês e ano para controle gerencial.</div>", unsafe_allow_html=True)
         long_term_data = []
         for nome, temp in dados_abas.items():
@@ -480,7 +482,7 @@ elif menu == "📊  Gráficos e Análises":
             st.info("Aguardando dados históricos suficientes para gerar gráficos mensais.")
 
 # =========================================================
-# 3. TELA: HISTÓRICO DE PLANILHAS (COM CHECKLIST)
+# 3. TELA: HISTÓRICO DE PLANILHAS
 # =========================================================
 else:
     st.markdown("<div class='section-title'>Histórico de Planilhas</div><div class='section-subtitle'>Controle de lançamentos: confirme quais planilhas já foram passadas para o sistema da empresa.</div>", unsafe_allow_html=True)
