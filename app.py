@@ -77,446 +77,1418 @@ div[data-baseweb="select"]>div,div[data-baseweb="input"]>div{background:#0c111e!
 # =========================================================
 # FUNÇÕES DE TRATAMENTO DE DADOS
 # =========================================================
-def vazio():
-    return pd.DataFrame(columns=["Data", "Hora", "Peso (kg)", "Lote"])
 
+def vazio():
+    return pd.DataFrame(
+        columns=["Data", "Hora", "Peso (kg)", "Lote"]
+    )
+
+
+# =========================================================
+# CORREÇÃO DA DATA
+# =========================================================
 def formatar_data_planilha(valor):
     if pd.isna(valor) or str(valor).strip() == "":
         return None
+
     texto = str(valor).strip()
+
+    # O Apps Script agora envia a data como dd/MM/yyyy.
+    # Portanto, primeiro tentamos esse formato diretamente.
     try:
-        if "T" in texto or texto.endswith("Z"):
-            data = pd.to_datetime(texto, utc=True, errors="coerce")
-            if not pd.isna(data):
-                return data.tz_convert(TZ).strftime("%d/%m/%Y")
-        data = pd.to_datetime(texto, errors="coerce", dayfirst=True)
+        data = pd.to_datetime(
+            texto,
+            format="%d/%m/%Y",
+            errors="coerce"
+        )
+
         if not pd.isna(data):
             return data.strftime("%d/%m/%Y")
+
     except (TypeError, ValueError):
         pass
+
+    # Compatibilidade com registros antigos
+    try:
+        if "T" in texto or texto.endswith("Z"):
+            data = pd.to_datetime(
+                texto,
+                utc=True,
+                errors="coerce"
+            )
+
+            if not pd.isna(data):
+                return data.tz_convert(TZ).strftime(
+                    "%d/%m/%Y"
+                )
+
+        data = pd.to_datetime(
+            texto,
+            errors="coerce",
+            dayfirst=True
+        )
+
+        if not pd.isna(data):
+            return data.strftime("%d/%m/%Y")
+
+    except (TypeError, ValueError):
+        pass
+
     return texto
 
+
+# =========================================================
+# CORREÇÃO DO HORÁRIO
+# =========================================================
 def formatar_hora_planilha(valor):
     if pd.isna(valor) or str(valor).strip() == "":
         return None
+
     texto = str(valor).strip()
-    marco_excel = re.match(r"^1899-12-\d{2}T(\d{2}:\d{2}:\d{2})", texto)
+
+    # =====================================================
+    # HORÁRIO NORMAL
+    #
+    # Exemplo:
+    # 14:10:15
+    #
+    # NÃO CONVERTE FUSO.
+    # =====================================================
+    hora = re.match(
+        r"^(\d{1,2}):(\d{2})(?::(\d{2}))?$",
+        texto
+    )
+
+    if hora:
+        horas = int(hora.group(1))
+        minutos = hora.group(2)
+        segundos = hora.group(3) or "00"
+
+        return (
+            f"{horas:02d}:"
+            f"{minutos}:"
+            f"{segundos}"
+        )
+
+    # =====================================================
+    # COMPATIBILIDADE COM HORÁRIOS ANTIGOS DO GOOGLE
+    #
+    # Exemplo:
+    # 1899-12-30T22:10:15
+    # =====================================================
+    marco_excel = re.match(
+        r"^1899-12-\d{2}T(\d{2}:\d{2}:\d{2})",
+        texto
+    )
+
     if marco_excel:
         return marco_excel.group(1)
-    hora = re.match(r"^(\d{1,2}:\d{2}(?::\d{2})?)$", texto)
-    if hora:
-        partes = hora.group(1).split(":")
-        return f"{int(partes[0]):02d}:{partes[1]}:{partes[2] if len(partes) == 3 else '00'}"
+
+    # =====================================================
+    # COMPATIBILIDADE COM DATAS ISO ANTIGAS
+    # =====================================================
     try:
-        data = pd.to_datetime(texto, utc=True, errors="coerce")
-        if not pd.isna(data):
-            return data.tz_convert(TZ).strftime("%H:%M:%S")
+        if "T" in texto or texto.endswith("Z"):
+            data = pd.to_datetime(
+                texto,
+                utc=True,
+                errors="coerce"
+            )
+
+            if not pd.isna(data):
+                return data.tz_convert(TZ).strftime(
+                    "%H:%M:%S"
+                )
+
     except (TypeError, ValueError):
         pass
+
     return texto
+
 
 def normalizar_colunas(df: pd.DataFrame) -> pd.DataFrame:
     if df is None or df.empty:
         return vazio()
+
     df = df.copy()
+
     renomear = {}
+
     for c in df.columns:
-        chave = str(c).strip().lower().replace(" ", "").replace("_", "")
-        if chave in {"peso", "peso(kg)", "pesokg"}:
+        chave = (
+            str(c)
+            .strip()
+            .lower()
+            .replace(" ", "")
+            .replace("_", "")
+        )
+
+        if chave in {
+            "peso",
+            "peso(kg)",
+            "pesokg"
+        }:
             renomear[c] = "Peso (kg)"
+
         elif chave == "data":
             renomear[c] = "Data"
+
         elif chave == "hora":
             renomear[c] = "Hora"
+
         elif chave == "lote":
             renomear[c] = "Lote"
+
     df = df.rename(columns=renomear)
-    for col in ["Data", "Hora", "Peso (kg)", "Lote"]:
+
+    for col in [
+        "Data",
+        "Hora",
+        "Peso (kg)",
+        "Lote"
+    ]:
         if col not in df.columns:
             df[col] = None
-    df["Peso (kg)"] = pd.to_numeric(df["Peso (kg)"], errors="coerce")
-    df["Data"] = df["Data"].map(formatar_data_planilha)
-    df["Hora"] = df["Hora"].map(formatar_hora_planilha)
-    return df[["Data", "Hora", "Peso (kg)", "Lote"]].dropna(subset=["Peso (kg)"], how="all")
+
+    df["Peso (kg)"] = pd.to_numeric(
+        df["Peso (kg)"],
+        errors="coerce"
+    )
+
+    df["Data"] = df["Data"].map(
+        formatar_data_planilha
+    )
+
+    df["Hora"] = df["Hora"].map(
+        formatar_hora_planilha
+    )
+
+    return (
+        df[
+            [
+                "Data",
+                "Hora",
+                "Peso (kg)",
+                "Lote"
+            ]
+        ]
+        .dropna(
+            subset=["Peso (kg)"],
+            how="all"
+        )
+    )
+
 
 @st.cache_data(ttl=15)
 def carregar_dados_todas_abas():
-    resposta = requests.get(URL_SCRIPT, timeout=20)
+
+    resposta = requests.get(
+        URL_SCRIPT,
+        timeout=20
+    )
+
     resposta.raise_for_status()
+
     dados = resposta.json()
+
     if not isinstance(dados, dict):
-        raise ValueError("O Google Apps Script não devolveu um JSON de abas.")
+        raise ValueError(
+            "O Google Apps Script não devolveu um JSON de abas."
+        )
+
     resultado = {}
+
     for nome_aba, conteudo in dados.items():
-        if not isinstance(conteudo, list) or not conteudo:
+
+        if (
+            not isinstance(conteudo, list)
+            or not conteudo
+        ):
             continue
+
         cabecalho = conteudo[0]
         linhas = conteudo[1:]
-        if not isinstance(cabecalho, list):
+
+        if not isinstance(
+            cabecalho,
+            list
+        ):
             continue
-        resultado[str(nome_aba)] = normalizar_colunas(pd.DataFrame(linhas, columns=cabecalho))
+
+        resultado[str(nome_aba)] = (
+            normalizar_colunas(
+                pd.DataFrame(
+                    linhas,
+                    columns=cabecalho
+                )
+            )
+        )
+
     return resultado
+
 
 def chave_aba(nome):
     data = data_da_aba(nome)
-    return datetime.combine(data, datetime.min.time()) if data else datetime.min
+
+    return (
+        datetime.combine(
+            data,
+            datetime.min.time()
+        )
+        if data
+        else datetime.min
+    )
+
 
 def data_da_aba(nome):
     texto = str(nome)
+
     for padrao, formato in [
-        (r"(?<!\d)(\d{2}-\d{2}-\d{4})(?!\d)", "%d-%m-%Y"),
-        (r"(?<!\d)(\d{4}-\d{2}-\d{2})(?!\d)", "%Y-%m-%d"),
+        (
+            r"(?<!\d)(\d{2}-\d{2}-\d{4})(?!\d)",
+            "%d-%m-%Y"
+        ),
+        (
+            r"(?<!\d)(\d{4}-\d{2}-\d{2})(?!\d)",
+            "%Y-%m-%d"
+        ),
     ]:
-        encontrado = re.search(padrao, texto)
+
+        encontrado = re.search(
+            padrao,
+            texto
+        )
+
         if encontrado:
             try:
-                return datetime.strptime(encontrado.group(1), formato).date()
+                return datetime.strptime(
+                    encontrado.group(1),
+                    formato
+                ).date()
+
             except ValueError:
                 pass
+
     return None
+
 
 def rotulo_aba(nome):
     data = data_da_aba(nome)
-    return data.strftime("%d/%m/%Y") if data else str(nome)
+
+    return (
+        data.strftime("%d/%m/%Y")
+        if data
+        else str(nome)
+    )
+
 
 def formatar_numero(valor):
-    return f"{valor:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    return (
+        f"{valor:,.2f}"
+        .replace(",", "X")
+        .replace(".", ",")
+        .replace("X", ".")
+    )
+
 
 def gerar_xlsx(df: pd.DataFrame) -> bytes:
+
     buffer = io.BytesIO()
+
     try:
+
         from openpyxl import Workbook
-        from openpyxl.styles import Font, PatternFill
+        from openpyxl.styles import (
+            Font,
+            PatternFill
+        )
+
         wb = Workbook()
+
         ws = wb.active
+
         ws.title = "Registros"
+
         cab = list(df.columns)
+
         ws.append(cab)
+
         for cell in ws[1]:
-            cell.font = Font(bold=True, color="FFFFFF")
-            cell.fill = PatternFill("solid", fgColor="111827")
-        for row in df.itertuples(index=False, name=None):
+
+            cell.font = Font(
+                bold=True,
+                color="FFFFFF"
+            )
+
+            cell.fill = PatternFill(
+                "solid",
+                fgColor="111827"
+            )
+
+        for row in df.itertuples(
+            index=False,
+            name=None
+        ):
             ws.append(list(row))
+
         ws.freeze_panes = "A2"
+
         ws.auto_filter.ref = ws.dimensions
+
         for col in ws.columns:
+
             letra = col[0].column_letter
-            maior = max(len(str(c.value or "")) for c in col)
-            ws.column_dimensions[letra].width = min(max(maior + 2, 12), 28)
+
+            maior = max(
+                len(str(c.value or ""))
+                for c in col
+            )
+
+            ws.column_dimensions[
+                letra
+            ].width = min(
+                max(maior + 2, 12),
+                28
+            )
+
         wb.save(buffer)
+
         return buffer.getvalue()
+
     except Exception:
-        return df.to_csv(index=False, sep=";").encode("utf-8-sig")
+
+        return df.to_csv(
+            index=False,
+            sep=";"
+        ).encode(
+            "utf-8-sig"
+        )
+
 
 def grafico_layout(fig, height=300):
+
     fig.update_layout(
         template="plotly_dark",
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#aeb9cb", family="Inter"),
-        margin=dict(l=10, r=10, t=20, b=10),
+        font=dict(
+            color="#aeb9cb",
+            family="Inter"
+        ),
+        margin=dict(
+            l=10,
+            r=10,
+            t=20,
+            b=10
+        ),
         height=height,
         showlegend=False,
-        xaxis=dict(gridcolor="rgba(90,120,180,.10)", zeroline=False),
-        yaxis=dict(gridcolor="rgba(90,120,180,.10)", zeroline=False),
+        xaxis=dict(
+            gridcolor="rgba(90,120,180,.10)",
+            zeroline=False
+        ),
+        yaxis=dict(
+            gridcolor="rgba(90,120,180,.10)",
+            zeroline=False
+        ),
     )
+
     return fig
 
+
 def mostrar_metricas(df):
+
     total_caixas = len(df)
-    peso_total = float(df["Peso (kg)"].sum()) if not df.empty else 0
-    media = float(df["Peso (kg)"].mean()) if not df.empty else 0
-    
+
+    peso_total = (
+        float(df["Peso (kg)"].sum())
+        if not df.empty
+        else 0
+    )
+
+    media = (
+        float(df["Peso (kg)"].mean())
+        if not df.empty
+        else 0
+    )
+
     cards = [
-        ("📦", "Caixas Passadas", f"{total_caixas}", "Hoje", "cyan"),
-        ("⚖", "Peso Total (kg)", formatar_numero(peso_total), "Hoje", "blue"),
-        ("◈", "Média por Caixa", f"{formatar_numero(media)} kg", "Hoje", "purple"),
+        (
+            "📦",
+            "Caixas Passadas",
+            f"{total_caixas}",
+            "Hoje",
+            "cyan"
+        ),
+        (
+            "⚖",
+            "Peso Total (kg)",
+            formatar_numero(peso_total),
+            "Hoje",
+            "blue"
+        ),
+        (
+            "◈",
+            "Média por Caixa",
+            f"{formatar_numero(media)} kg",
+            "Hoje",
+            "purple"
+        ),
     ]
+
     cols = st.columns(3)
-    for col, (icon, label, value, foot, color) in zip(cols, cards):
+
+    for col, (
+        icon,
+        label,
+        value,
+        foot,
+        color
+    ) in zip(cols, cards):
+
         with col:
+
             st.markdown(
                 f"<div class='metric-card'>"
-                f"<div class='metric-label'><span class='icon-{color}'>{icon}</span>&nbsp;&nbsp;{label}</div>"
-                f"<div class='metric-value'>{value}</div>"
-                f"<div class='metric-foot'>{foot}</div>"
+                f"<div class='metric-label'>"
+                f"<span class='icon-{color}'>"
+                f"{icon}"
+                f"</span>&nbsp;&nbsp;"
+                f"{label}"
+                f"</div>"
+                f"<div class='metric-value'>"
+                f"{value}"
+                f"</div>"
+                f"<div class='metric-foot'>"
+                f"{foot}"
+                f"</div>"
                 f"</div>",
                 unsafe_allow_html=True
             )
 
+
 def resumo_dia(df):
-    peso_total = float(df["Peso (kg)"].sum()) if not df.empty else 0
-    media = float(df["Peso (kg)"].mean()) if not df.empty else 0
+
+    peso_total = (
+        float(df["Peso (kg)"].sum())
+        if not df.empty
+        else 0
+    )
+
+    media = (
+        float(df["Peso (kg)"].mean())
+        if not df.empty
+        else 0
+    )
+
     total_caixas = len(df)
-    return peso_total, media, total_caixas
+
+    return (
+        peso_total,
+        media,
+        total_caixas
+    )
+
 
 # =========================================================
 # CARREGAMENTO E ESTADO GLOBAL
 # =========================================================
+
 try:
-    dados_abas = carregar_dados_todas_abas()
+
+    dados_abas = (
+        carregar_dados_todas_abas()
+    )
+
     erro_api = None
+
 except Exception as erro:
+
     dados_abas = {}
+
     erro_api = str(erro)
 
-lista_abas = sorted(dados_abas.keys(), key=chave_aba, reverse=True)
+
+lista_abas = sorted(
+    dados_abas.keys(),
+    key=chave_aba,
+    reverse=True
+)
+
 
 # Define o dia atual globalmente
-dia_atual = st.session_state.get("dia_selecionado", lista_abas[0] if lista_abas else None)
-if dia_atual not in lista_abas and lista_abas:
+dia_atual = st.session_state.get(
+    "dia_selecionado",
+    lista_abas[0]
+    if lista_abas
+    else None
+)
+
+if (
+    dia_atual not in lista_abas
+    and lista_abas
+):
     dia_atual = lista_abas[0]
+
 
 # =========================================================
 # SIDEBAR
 # =========================================================
+
 with st.sidebar:
+
     if os.path.exists("logo.png"):
-        st.image("logo.png", use_container_width=True)
+
+        st.image(
+            "logo.png",
+            use_container_width=True
+        )
+
     elif os.path.exists("logo.jpg"):
-        st.image("logo.jpg", use_container_width=True)
-    st.markdown("<div class='brand-small'>Sistema <span>AMIRA</span></div><div class='side-caption'>Monitoramento • Automação • Precisão</div>", unsafe_allow_html=True)
-    st.markdown("<div class='nav-title'>MENU DE NAVEGAÇÃO</div>", unsafe_allow_html=True)
-    opcoes_menu = ["📋  Registro e Dados", "📊  Gráficos e Análises", "🗂  Histórico de Planilhas"]
-    menu = st.session_state.get("menu_amira", opcoes_menu[0])
-    for indice, opcao in enumerate(opcoes_menu):
+
+        st.image(
+            "logo.jpg",
+            use_container_width=True
+        )
+
+    st.markdown(
+        "<div class='brand-small'>"
+        "Sistema <span>AMIRA</span>"
+        "</div>"
+        "<div class='side-caption'>"
+        "Monitoramento • Automação • Precisão"
+        "</div>",
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        "<div class='nav-title'>"
+        "MENU DE NAVEGAÇÃO"
+        "</div>",
+        unsafe_allow_html=True
+    )
+
+    opcoes_menu = [
+        "📋  Registro e Dados",
+        "📊  Gráficos e Análises",
+        "🗂  Histórico de Planilhas"
+    ]
+
+    menu = st.session_state.get(
+        "menu_amira",
+        opcoes_menu[0]
+    )
+
+    for indice, opcao in enumerate(
+        opcoes_menu
+    ):
+
         if st.button(
             opcao,
             key=f"menu_amira_{indice}",
-            type="primary" if menu == opcao else "secondary",
+            type=(
+                "primary"
+                if menu == opcao
+                else "secondary"
+            ),
             use_container_width=True,
         ):
-            st.session_state["menu_amira"] = opcao
+
+            st.session_state[
+                "menu_amira"
+            ] = opcao
+
             st.rerun()
-    st.markdown("<div class='sidebar-status'><div style='font-weight:800;'>Sistema AMIRA</div><div style='color:#7f8da4;font-size:.75rem;margin-top:5px;'><span class='dot'></span>Monitoramento ativo</div></div>", unsafe_allow_html=True)
-    st.markdown("<div class='footer'>© 2026 AMIRA • SENAI<br>IoT • Automação • Precisão</div>", unsafe_allow_html=True)
+
+    st.markdown(
+        "<div class='sidebar-status'>"
+        "<div style='font-weight:800;'>"
+        "Sistema AMIRA"
+        "</div>"
+        "<div style='color:#7f8da4;"
+        "font-size:.75rem;margin-top:5px;'>"
+        "<span class='dot'></span>"
+        "Monitoramento ativo"
+        "</div>"
+        "</div>",
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        "<div class='footer'>"
+        "© 2026 AMIRA • SENAI<br>"
+        "IoT • Automação • Precisão"
+        "</div>",
+        unsafe_allow_html=True
+    )
+
 
 # =========================================================
 # CABEÇALHO + AÇÕES
 # =========================================================
 
-# Títulos dinâmicos e grandes por página
 if menu == "📋  Registro e Dados":
-    st.markdown("<div class='top-title'>Bem-vindo à <span>AMIRA</span></div><div class='top-subtitle'>Sistema de Monitoramento e Registro de Produção</div>", unsafe_allow_html=True)
+
+    st.markdown(
+        "<div class='top-title'>"
+        "Bem-vindo à <span>AMIRA</span>"
+        "</div>"
+        "<div class='top-subtitle'>"
+        "Sistema de Monitoramento e Registro de Produção"
+        "</div>",
+        unsafe_allow_html=True
+    )
+
 elif menu == "📊  Gráficos e Análises":
-    st.markdown("<div class='top-title'><span>Gráficos</span> e Análises</div><div class='top-subtitle'>Explore o histórico e compare dias e meses de produção.</div>", unsafe_allow_html=True)
+
+    st.markdown(
+        "<div class='top-title'>"
+        "<span>Gráficos</span> e Análises"
+        "</div>"
+        "<div class='top-subtitle'>"
+        "Explore o histórico e compare dias e meses de produção."
+        "</div>",
+        unsafe_allow_html=True
+    )
+
 else:
-    st.markdown("<div class='top-title'><span>Histórico</span> de Planilhas</div><div class='top-subtitle'>Controle de lançamentos no sistema da empresa.</div>", unsafe_allow_html=True)
 
-st.markdown("<div style='margin-top: 15px;'></div>", unsafe_allow_html=True)
+    st.markdown(
+        "<div class='top-title'>"
+        "<span>Histórico</span> de Planilhas"
+        "</div>"
+        "<div class='top-subtitle'>"
+        "Controle de lançamentos no sistema da empresa."
+        "</div>",
+        unsafe_allow_html=True
+    )
 
-# 4 colunas exclusivas para alinhar perfeitamente os botões
-col_sel, col_space, col_b1, col_b2 = st.columns([1.5, 1.5, 1, 1])
+
+st.markdown(
+    "<div style='margin-top: 15px;'></div>",
+    unsafe_allow_html=True
+)
+
+
+# =========================================================
+# BOTÕES
+# =========================================================
+
+col_sel, col_space, col_b1, col_b2 = st.columns(
+    [1.5, 1.5, 1, 1]
+)
+
 
 with col_sel:
-    if menu == "📋  Registro e Dados" and lista_abas:
+
+    if (
+        menu == "📋  Registro e Dados"
+        and lista_abas
+    ):
+
         dia_selecionado_novo = st.selectbox(
             "📅 Dia de Produção",
             options=lista_abas,
             format_func=rotulo_aba,
-            index=lista_abas.index(dia_atual) if dia_atual in lista_abas else 0,
+            index=(
+                lista_abas.index(dia_atual)
+                if dia_atual in lista_abas
+                else 0
+            ),
         )
-        if dia_selecionado_novo != dia_atual:
-            st.session_state["dia_selecionado"] = dia_selecionado_novo
+
+        if (
+            dia_selecionado_novo
+            != dia_atual
+        ):
+
+            st.session_state[
+                "dia_selecionado"
+            ] = dia_selecionado_novo
+
             st.rerun()
+
         dia_atual = dia_selecionado_novo
 
-df = dados_abas.get(dia_atual, vazio()) if dia_atual else vazio()
+
+df = (
+    dados_abas.get(
+        dia_atual,
+        vazio()
+    )
+    if dia_atual
+    else vazio()
+)
+
 
 with col_b1:
-    st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
-    if st.button("🔄 Recarregar Dados", use_container_width=True):
+
+    st.markdown(
+        "<div style='margin-top: 28px;'></div>",
+        unsafe_allow_html=True
+    )
+
+    if st.button(
+        "🔄 Recarregar Dados",
+        use_container_width=True
+    ):
+
         carregar_dados_todas_abas.clear()
+
         st.rerun()
-        
+
+
 with col_b2:
-    st.markdown("<div style='margin-top: 28px;'></div>", unsafe_allow_html=True)
-    if dia_atual and not df.empty:
+
+    st.markdown(
+        "<div style='margin-top: 28px;'></div>",
+        unsafe_allow_html=True
+    )
+
+    if (
+        dia_atual
+        and not df.empty
+    ):
+
         st.download_button(
             label="⬇️ Baixar Planilha",
             data=gerar_xlsx(df),
-            file_name=f"AMIRA_Producao_{rotulo_aba(dia_atual).replace('/', '-')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            file_name=(
+                f"AMIRA_Producao_"
+                f"{rotulo_aba(dia_atual).replace('/', '-')}.xlsx"
+            ),
+            mime=(
+                "application/vnd.openxmlformats-officedocument."
+                "spreadsheetml.sheet"
+            ),
             use_container_width=True
         )
 
-st.markdown("<div class='hero-line'></div>", unsafe_allow_html=True)
+
+st.markdown(
+    "<div class='hero-line'></div>",
+    unsafe_allow_html=True
+)
+
 
 # =========================================================
 # 1. TELA: REGISTRO E DADOS
 # =========================================================
+
 if menu == "📋  Registro e Dados":
-            
-    st.markdown("<div class='section-title'>Dados do Dia</div>", unsafe_allow_html=True)
-    
+
+    st.markdown(
+        "<div class='section-title'>"
+        "Dados do Dia"
+        "</div>",
+        unsafe_allow_html=True
+    )
+
     mostrar_metricas(df)
+
     st.markdown("<br>", unsafe_allow_html=True)
-    
+
     left, right = st.columns([2.2, 1])
-    
+
+
+    # =====================================================
+    # TABELA
+    # =====================================================
+
     with left:
+
         if df.empty:
-            st.info("Aguardando pesagens para exibir na tabela.")
+
+            st.info(
+                "Aguardando pesagens para exibir na tabela."
+            )
+
         else:
-            tabela_exibicao = df.copy().reset_index(drop=True)
-            tabela_exibicao.insert(0, "#", tabela_exibicao.index + 1)
+
+            tabela_exibicao = (
+                df.copy()
+                .reset_index(drop=True)
+            )
+
+            tabela_exibicao.insert(
+                0,
+                "#",
+                tabela_exibicao.index + 1
+            )
+
             st.dataframe(
-                tabela_exibicao, 
-                use_container_width=True, 
-                hide_index=True, 
+                tabela_exibicao,
+                use_container_width=True,
+                hide_index=True,
                 column_config={
-                    "#": st.column_config.NumberColumn("#", width="small"),
-                    "Peso (kg)": st.column_config.NumberColumn("Peso (kg)", format="%.2f")
+                    "#": st.column_config.NumberColumn(
+                        "#",
+                        width="small"
+                    ),
+                    "Peso (kg)": st.column_config.NumberColumn(
+                        "Peso (kg)",
+                        format="%.2f"
+                    )
                 }
             )
-        
+
+
+    # =====================================================
+    # RESUMO
+    # =====================================================
+
     with right:
-        peso_total, media, total_caixas = resumo_dia(df)
-        
-        html_resumo = f"""<div class='panel summary-panel'>
+
+        peso_total, media, total_caixas = (
+            resumo_dia(df)
+        )
+
+        html_resumo = f"""
+<div class='panel summary-panel'>
 <div class='panel-title'>Resumo do Dia</div>
 <div class='panel-sub'>Indicadores principais</div>
-<div style='display:flex; justify-content:center; align-items:center; padding: 30px 0 25px;'>
-<div style='width: 145px; height: 145px; border-radius: 50%; background: conic-gradient(#3d8cff 85%, rgba(255,255,255,0.05) 85%); display: flex; justify-content: center; align-items: center; box-shadow: 0 0 20px rgba(61,140,255,0.15);'>
-<div style='width: 125px; height: 125px; border-radius: 50%; background: #080c14; display: flex; flex-direction: column; justify-content: center; align-items: center; border: 1px solid rgba(88,130,230,.15);'>
-<span style="font-family:'Orbitron', sans-serif; font-size: 1.35rem; font-weight: 800; color: #fff;">{formatar_numero(peso_total)}</span>
-<span style="font-size: 0.75rem; color: #77849a; margin-top: 2px;">kg</span>
+
+<div style='display:flex;
+justify-content:center;
+align-items:center;
+padding:30px 0 25px;'>
+
+<div style='width:145px;
+height:145px;
+border-radius:50%;
+background:conic-gradient(
+#3d8cff 85%,
+rgba(255,255,255,0.05) 85%
+);
+display:flex;
+justify-content:center;
+align-items:center;
+box-shadow:0 0 20px rgba(61,140,255,0.15);'>
+
+<div style='width:125px;
+height:125px;
+border-radius:50%;
+background:#080c14;
+display:flex;
+flex-direction:column;
+justify-content:center;
+align-items:center;
+border:1px solid rgba(88,130,230,.15);'>
+
+<span style="font-family:'Orbitron',sans-serif;
+font-size:1.35rem;
+font-weight:800;
+color:#fff;">
+
+{formatar_numero(peso_total)}
+
+</span>
+
+<span style="font-size:0.75rem;
+color:#77849a;
+margin-top:2px;">
+
+kg
+
+</span>
+
 </div>
 </div>
 </div>
-<div class='summary-row'><span>📦 Caixas passadas</span><b style='color:#fff;'>{total_caixas}</b></div>
-<div class='summary-row'><span>↗ Média por caixa</span><b style='color:#fff;'>{formatar_numero(media)} kg</b></div>
-<div class='summary-row'><span>⚖ Peso total acumulado</span><b style='color:#fff;'>{formatar_numero(peso_total)} kg</b></div>
-</div>"""
-        st.markdown(html_resumo, unsafe_allow_html=True)
-        
-    st.markdown("<br><br><div class='section-title' style='font-size: 1.2rem;'>Desempenho do Dia</div>", unsafe_allow_html=True)
+
+<div class='summary-row'>
+<span>📦 Caixas passadas</span>
+<b style='color:#fff;'>{total_caixas}</b>
+</div>
+
+<div class='summary-row'>
+<span>↗ Média por caixa</span>
+<b style='color:#fff;'>{formatar_numero(media)} kg</b>
+</div>
+
+<div class='summary-row'>
+<span>⚖ Peso total acumulado</span>
+<b style='color:#fff;'>{formatar_numero(peso_total)} kg</b>
+</div>
+
+</div>
+"""
+
+        st.markdown(
+            html_resumo,
+            unsafe_allow_html=True
+        )
+
+
+    # =====================================================
+    # DESEMPENHO DO DIA
+    # =====================================================
+
+    st.markdown(
+        "<br><br>"
+        "<div class='section-title' "
+        "style='font-size:1.2rem;'>"
+        "Desempenho do Dia"
+        "</div>",
+        unsafe_allow_html=True
+    )
+
     g1, g2 = st.columns(2)
-    
+
+
+    # =====================================================
+    # GRÁFICO DE PESO
+    # =====================================================
+
     with g1:
-        st.markdown("<div class='panel-title'>Peso ao longo do dia</div>", unsafe_allow_html=True)
+
+        st.markdown(
+            "<div class='panel-title'>"
+            "Peso ao longo do dia"
+            "</div>",
+            unsafe_allow_html=True
+        )
+
         if not df.empty:
-            dfg = df.reset_index(drop=True).copy()
-            dfg["Registro"] = dfg.index + 1
-            fig = px.area(dfg, x="Registro", y="Peso (kg)")
-            fig.update_traces(line_color="#3d8cff", fillcolor="rgba(61,140,255,.15)")
-            st.plotly_chart(grafico_layout(fig), use_container_width=True, config={"displayModeBar": False})
-            
+
+            dfg = (
+                df
+                .reset_index(drop=True)
+                .copy()
+            )
+
+            dfg["Registro"] = (
+                dfg.index + 1
+            )
+
+            fig = px.area(
+                dfg,
+                x="Registro",
+                y="Peso (kg)"
+            )
+
+            fig.update_traces(
+                line_color="#3d8cff",
+                fillcolor="rgba(61,140,255,.15)"
+            )
+
+            st.plotly_chart(
+                grafico_layout(fig),
+                use_container_width=True,
+                config={
+                    "displayModeBar": False
+                }
+            )
+
+
+    # =====================================================
+    # HISTOGRAMA
+    # =====================================================
+
     with g2:
-        st.markdown("<div class='panel-title'>Distribuição dos pesos</div>", unsafe_allow_html=True)
+
+        st.markdown(
+            "<div class='panel-title'>"
+            "Distribuição dos pesos"
+            "</div>",
+            unsafe_allow_html=True
+        )
+
         if not df.empty:
-            fig2 = px.histogram(df, x="Peso (kg)", nbins=8)
+
+            fig2 = px.histogram(
+                df,
+                x="Peso (kg)",
+                nbins=8
+            )
+
             fig2.update_traces(
                 marker_color="#7d4cff",
-                marker_line_color="#05070d", 
-                marker_line_width=2          
+                marker_line_color="#05070d",
+                marker_line_width=2
             )
-            fig2.update_layout(bargap=0.08)
-            st.plotly_chart(grafico_layout(fig2), use_container_width=True, config={"displayModeBar": False})
+
+            fig2.update_layout(
+                bargap=0.08
+            )
+
+            st.plotly_chart(
+                grafico_layout(fig2),
+                use_container_width=True,
+                config={
+                    "displayModeBar": False
+                }
+            )
+
 
 # =========================================================
 # 2. TELA: GRÁFICOS E ANÁLISES
 # =========================================================
-elif menu == "📊  Gráficos e Análises":
-    
-    if not lista_abas:
-        st.info("Aguardando registros para gerar as análises.")
-    else:
-        st.markdown("<div class='panel-title' style='font-size:1.15rem; color:#00d2ff;'>Comparativo Diário</div><div class='section-subtitle'>Produção dia a dia</div>", unsafe_allow_html=True)
-        resumo = []
-        for nome, temp in dados_abas.items():
-            if not temp.empty: 
-                resumo.append({"Data": nome, "Peso total (kg)": temp["Peso (kg)"].sum(), "Caixas": len(temp)})
-        rdf = pd.DataFrame(resumo)
-        
-        if not rdf.empty:
-            c3, c4 = st.columns(2)
-            with c3:
-                st.markdown("<div class='panel-title'>Peso Diário (kg)</div>", unsafe_allow_html=True)
-                fig = px.bar(rdf, x="Data", y="Peso total (kg)")
-                fig.update_traces(marker_color="#2f80ff")
-                st.plotly_chart(grafico_layout(fig), use_container_width=True, config={"displayModeBar": False})
-            with c4:
-                st.markdown("<div class='panel-title'>Caixas por Dia</div>", unsafe_allow_html=True)
-                fig = px.bar(rdf, x="Data", y="Caixas")
-                fig.update_traces(marker_color="#8a35ff")
-                st.plotly_chart(grafico_layout(fig), use_container_width=True, config={"displayModeBar": False})
 
-        st.markdown("<br><div class='panel-title' style='font-size:1.15rem; color:#00d2ff;'>Análise de Longo Prazo (Mensal)</div><div class='section-subtitle'>Comparativo histórico agrupado por mês e ano para controle gerencial.</div>", unsafe_allow_html=True)
-        long_term_data = []
+elif menu == "📊  Gráficos e Análises":
+
+    if not lista_abas:
+
+        st.info(
+            "Aguardando registros para gerar as análises."
+        )
+
+    else:
+
+        st.markdown(
+            "<div class='panel-title' "
+            "style='font-size:1.15rem; "
+            "color:#00d2ff;'>"
+            "Comparativo Diário"
+            "</div>"
+            "<div class='section-subtitle'>"
+            "Produção dia a dia"
+            "</div>",
+            unsafe_allow_html=True
+        )
+
+        resumo = []
+
         for nome, temp in dados_abas.items():
+
             if not temp.empty:
+
+                resumo.append({
+                    "Data": nome,
+                    "Peso total (kg)": temp[
+                        "Peso (kg)"
+                    ].sum(),
+                    "Caixas": len(temp)
+                })
+
+        rdf = pd.DataFrame(resumo)
+
+        if not rdf.empty:
+
+            c3, c4 = st.columns(2)
+
+            with c3:
+
+                st.markdown(
+                    "<div class='panel-title'>"
+                    "Peso Diário (kg)"
+                    "</div>",
+                    unsafe_allow_html=True
+                )
+
+                fig = px.bar(
+                    rdf,
+                    x="Data",
+                    y="Peso total (kg)"
+                )
+
+                fig.update_traces(
+                    marker_color="#2f80ff"
+                )
+
+                st.plotly_chart(
+                    grafico_layout(fig),
+                    use_container_width=True,
+                    config={
+                        "displayModeBar": False
+                    }
+                )
+
+            with c4:
+
+                st.markdown(
+                    "<div class='panel-title'>"
+                    "Caixas por Dia"
+                    "</div>",
+                    unsafe_allow_html=True
+                )
+
+                fig = px.bar(
+                    rdf,
+                    x="Data",
+                    y="Caixas"
+                )
+
+                fig.update_traces(
+                    marker_color="#8a35ff"
+                )
+
+                st.plotly_chart(
+                    grafico_layout(fig),
+                    use_container_width=True,
+                    config={
+                        "displayModeBar": False
+                    }
+                )
+
+
+        # =================================================
+        # ANÁLISE MENSAL
+        # =================================================
+
+        st.markdown(
+            "<br>"
+            "<div class='panel-title' "
+            "style='font-size:1.15rem; "
+            "color:#00d2ff;'>"
+            "Análise de Longo Prazo (Mensal)"
+            "</div>"
+            "<div class='section-subtitle'>"
+            "Comparativo histórico agrupado por mês e ano "
+            "para controle gerencial."
+            "</div>",
+            unsafe_allow_html=True
+        )
+
+        long_term_data = []
+
+        for nome, temp in dados_abas.items():
+
+            if not temp.empty:
+
                 dt = data_da_aba(nome)
+
                 if dt:
+
                     long_term_data.append({
                         "Ano": str(dt.year),
                         "Mês_Num": dt.month,
-                        "Mês/Ano": f"{dt.month:02d}/{dt.year}",
-                        "Peso total (kg)": temp["Peso (kg)"].sum(),
+                        "Mês/Ano": (
+                            f"{dt.month:02d}/{dt.year}"
+                        ),
+                        "Peso total (kg)": temp[
+                            "Peso (kg)"
+                        ].sum(),
                         "Caixas": len(temp)
                     })
-        
+
         if long_term_data:
-            df_lt = pd.DataFrame(long_term_data)
-            df_grp = df_lt.groupby(["Ano", "Mês_Num", "Mês/Ano"]).sum().reset_index().sort_values(by=["Ano", "Mês_Num"])
-            
+
+            df_lt = pd.DataFrame(
+                long_term_data
+            )
+
+            df_grp = (
+                df_lt
+                .groupby(
+                    [
+                        "Ano",
+                        "Mês_Num",
+                        "Mês/Ano"
+                    ]
+                )
+                .sum()
+                .reset_index()
+                .sort_values(
+                    by=[
+                        "Ano",
+                        "Mês_Num"
+                    ]
+                )
+            )
+
             lt1, lt2 = st.columns(2)
+
             with lt1:
-                st.markdown("<div class='panel-title'>Produção Mensal Acumulada (kg)</div>", unsafe_allow_html=True)
-                fig_lt1 = px.bar(df_grp, x="Mês/Ano", y="Peso total (kg)", color="Ano", color_discrete_sequence=["#00d2ff", "#2f80ff", "#8a35ff"])
-                st.plotly_chart(grafico_layout(fig_lt1), use_container_width=True, config={"displayModeBar": False})
+
+                st.markdown(
+                    "<div class='panel-title'>"
+                    "Produção Mensal Acumulada (kg)"
+                    "</div>",
+                    unsafe_allow_html=True
+                )
+
+                fig_lt1 = px.bar(
+                    df_grp,
+                    x="Mês/Ano",
+                    y="Peso total (kg)",
+                    color="Ano",
+                    color_discrete_sequence=[
+                        "#00d2ff",
+                        "#2f80ff",
+                        "#8a35ff"
+                    ]
+                )
+
+                st.plotly_chart(
+                    grafico_layout(fig_lt1),
+                    use_container_width=True,
+                    config={
+                        "displayModeBar": False
+                    }
+                )
+
             with lt2:
-                st.markdown("<div class='panel-title'>Volume Mensal (Qtd. Caixas)</div>", unsafe_allow_html=True)
-                fig_lt2 = px.line(df_grp, x="Mês/Ano", y="Caixas", color="Ano", markers=True, color_discrete_sequence=["#00d2ff", "#2f80ff", "#8a35ff"])
-                fig_lt2.update_traces(line_width=3, marker=dict(size=8))
-                st.plotly_chart(grafico_layout(fig_lt2), use_container_width=True, config={"displayModeBar": False})
+
+                st.markdown(
+                    "<div class='panel-title'>"
+                    "Volume Mensal (Qtd. Caixas)"
+                    "</div>",
+                    unsafe_allow_html=True
+                )
+
+                fig_lt2 = px.line(
+                    df_grp,
+                    x="Mês/Ano",
+                    y="Caixas",
+                    color="Ano",
+                    markers=True,
+                    color_discrete_sequence=[
+                        "#00d2ff",
+                        "#2f80ff",
+                        "#8a35ff"
+                    ]
+                )
+
+                fig_lt2.update_traces(
+                    line_width=3,
+                    marker=dict(size=8)
+                )
+
+                st.plotly_chart(
+                    grafico_layout(fig_lt2),
+                    use_container_width=True,
+                    config={
+                        "displayModeBar": False
+                    }
+                )
+
         else:
-            st.info("Aguardando dados históricos suficientes para gerar gráficos mensais.")
+
+            st.info(
+                "Aguardando dados históricos suficientes "
+                "para gerar gráficos mensais."
+            )
+
 
 # =========================================================
 # 3. TELA: HISTÓRICO DE PLANILHAS
 # =========================================================
+
 else:
-    
+
     if "planilhas_lancadas" not in st.session_state:
-        st.session_state["planilhas_lancadas"] = set()
+
+        st.session_state[
+            "planilhas_lancadas"
+        ] = set()
 
     if not lista_abas:
-        st.info("Ainda não há planilhas registradas pela balança.")
+
+        st.info(
+            "Ainda não há planilhas registradas pela balança."
+        )
+
     else:
-        for nome in sorted(lista_abas, key=chave_aba, reverse=True):
-            temp = dados_abas.get(nome, vazio())
+
+        for nome in sorted(
+            lista_abas,
+            key=chave_aba,
+            reverse=True
+        ):
+
+            temp = dados_abas.get(
+                nome,
+                vazio()
+            )
+
             rotulo = rotulo_aba(nome)
-            
-            esta_lancada = nome in st.session_state["planilhas_lancadas"]
-            
+
+            esta_lancada = (
+                nome
+                in st.session_state[
+                    "planilhas_lancadas"
+                ]
+            )
+
             if esta_lancada:
-                titulo = f"🟢 {rotulo}   •   ✓ Lançado no sistema"
+
+                titulo = (
+                    f"🟢 {rotulo}"
+                    "   •   ✓ Lançado no sistema"
+                )
+
             else:
-                titulo = f"🟠 {rotulo}   •   ! Pendente de lançamento"
-            
-            with st.expander(titulo, expanded=False):
+
+                titulo = (
+                    f"🟠 {rotulo}"
+                    "   •   ! Pendente de lançamento"
+                )
+
+            with st.expander(
+                titulo,
+                expanded=False
+            ):
+
                 if not esta_lancada:
-                    st.warning("⚠️ Esta planilha ainda não foi marcada como lançada no sistema oficial.")
-                    if st.button(f"✓ Confirmar Lançamento — {rotulo}", key=f"btn_{nome}", type="primary"):
-                        st.session_state["planilhas_lancadas"].add(nome)
+
+                    st.warning(
+                        "⚠️ Esta planilha ainda não foi "
+                        "marcada como lançada no sistema oficial."
+                    )
+
+                    if st.button(
+                        f"✓ Confirmar Lançamento — {rotulo}",
+                        key=f"btn_{nome}",
+                        type="primary"
+                    ):
+
+                        st.session_state[
+                            "planilhas_lancadas"
+                        ].add(nome)
+
                         st.rerun()
+
                 else:
-                    st.success("✅ Lançamento confirmado pela equipe!")
+
+                    st.success(
+                        "✅ Lançamento confirmado pela equipe!"
+                    )
 
                 if temp.empty:
-                    st.info("A planilha existe, mas ainda não possui registros.")
+
+                    st.info(
+                        "A planilha existe, mas ainda não possui registros."
+                    )
+
                 else:
-                    tabela_historico = temp.copy().reset_index(drop=True)
-                    tabela_historico.insert(0, "#", tabela_historico.index + 1)
+
+                    tabela_historico = (
+                        temp
+                        .copy()
+                        .reset_index(drop=True)
+                    )
+
+                    tabela_historico.insert(
+                        0,
+                        "#",
+                        tabela_historico.index + 1
+                    )
+
                     st.dataframe(
-                        tabela_historico, 
-                        use_container_width=True, 
-                        hide_index=True, 
+                        tabela_historico,
+                        use_container_width=True,
+                        hide_index=True,
                         column_config={
-                            "#": st.column_config.NumberColumn("#", width="small"), 
-                            "Peso (kg)": st.column_config.NumberColumn("Peso (kg)", format="%.2f")
+                            "#": st.column_config.NumberColumn(
+                                "#",
+                                width="small"
+                            ),
+                            "Peso (kg)": st.column_config.NumberColumn(
+                                "Peso (kg)",
+                                format="%.2f"
+                            )
                         }
                     )
 
-st.markdown("<div class='footer'>AMIRA • Sistema de Monitoramento e Registro de Produção • SENAI</div>", unsafe_allow_html=True)
+
+# =========================================================
+# RODAPÉ
+# =========================================================
+
+st.markdown(
+    "<div class='footer'>"
+    "AMIRA • Sistema de Monitoramento e Registro de Produção • SENAI"
+    "</div>",
+    unsafe_allow_html=True
+)
