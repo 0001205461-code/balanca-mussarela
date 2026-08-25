@@ -1,11 +1,10 @@
 import io
 import os
 import re
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pandas as pd
 import plotly.express as px
-import plotly.graph_objects as go
 import requests
 import streamlit as st
 
@@ -16,20 +15,21 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# SUBSTITUA PELA SUA URL DO GOOGLE APPS SCRIPT
-URL_SCRIPT = "https://script.google.com/macros/s/AKfycbwQ8IIVRIDsx8-CdJeKw6LUr4rBOFGX0jb42augc8v89TZVNWy0O8mlBAK23O2Tjymmaw/exec"
+# =========================================================
+# CONFIGURAÇÕES
+# =========================================================
 
+URL_SCRIPT = "https://script.google.com/macros/s/AKfycbwQ8IIVRIDsx8-CdJeKw6LUr4rBOFGX0jb42augc8v89TZVNWy0O8mlBAK23O2Tjymmaw/exec"
 TZ = "America/Sao_Paulo"
 
 
 # =========================================================
-# VISUAL AMIRA (CSS)
+# VISUAL AMIRA
 # =========================================================
 
 st.markdown(
     """
 <style>
-
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800&display=swap');
 
 :root{
@@ -40,12 +40,13 @@ st.markdown(
     --blue:#2f80ff;
     --cyan:#00d2ff;
     --purple:#8a35ff;
+    --green:#20e889;
     --text:#f4f7ff;
-    --muted:#8f9bb2
+    --muted:#8f9bb2;
 }
 
 html,body,[class*="css"]{
-    font-family:Inter,sans-serif
+    font-family:Inter,sans-serif;
 }
 
 .stApp{
@@ -53,20 +54,20 @@ html,body,[class*="css"]{
         radial-gradient(circle at 68% 12%,rgba(54,83,180,.13),transparent 28%),
         radial-gradient(circle at 96% 76%,rgba(138,53,255,.12),transparent 31%),
         #05070d;
-    color:var(--text)
+    color:var(--text);
 }
 
 header[data-testid="stHeader"]{
-    background:transparent!important
+    background:transparent!important;
 }
 
 [data-testid="stToolbar"]{
     display:flex!important;
-    background:transparent!important
+    background:transparent!important;
 }
 
 [data-testid="stDecoration"]{
-    display:none!important
+    display:none!important;
 }
 
 [data-testid="stHeader"] button,
@@ -78,7 +79,7 @@ header[data-testid="stHeader"]{
     background:rgba(10,15,29,.92)!important;
     border:1px solid rgba(76,145,255,.65)!important;
     border-radius:9px!important;
-    box-shadow:0 0 18px rgba(58,116,255,.28)!important
+    box-shadow:0 0 18px rgba(58,116,255,.28)!important;
 }
 
 [data-testid="stSidebarCollapsedControl"]{
@@ -90,31 +91,23 @@ header[data-testid="stHeader"]{
     background:rgba(10,15,29,.92)!important;
     border:1px solid rgba(76,145,255,.65)!important;
     border-radius:9px!important;
-    box-shadow:0 0 18px rgba(58,116,255,.28)!important
+    box-shadow:0 0 18px rgba(58,116,255,.28)!important;
 }
 
 .block-container{
     padding:1.25rem 1.6rem 2rem;
-    max-width:1700px
+    max-width:1700px;
 }
 
 section[data-testid="stSidebar"]{
     background:
         radial-gradient(circle at 50% 12%,rgba(50,117,255,.12),transparent 25%),
         linear-gradient(180deg,#070a12 0%,#080b14 100%)!important;
-    border-right:1px solid rgba(76,122,255,.18)
+    border-right:1px solid rgba(76,122,255,.18);
 }
 
 section[data-testid="stSidebar"]>div{
-    padding-top:1.05rem
-}
-
-.sidebar-logo{
-    width:100%;
-    max-height:185px;
-    object-fit:contain;
-    border-radius:16px;
-    filter:drop-shadow(0 0 18px rgba(45,126,255,.16))
+    padding-top:1.05rem;
 }
 
 .brand-small{
@@ -123,18 +116,18 @@ section[data-testid="stSidebar"]>div{
     font-size:1.05rem;
     font-weight:800;
     letter-spacing:2px;
-    margin-top:-7px
+    margin-top:-7px;
 }
 
 .brand-small span{
-    color:var(--cyan)
+    color:var(--cyan);
 }
 
 .side-caption{
     text-align:center;
     color:var(--muted);
     font-size:.75rem;
-    margin-top:4px
+    margin-top:4px;
 }
 
 .nav-title{
@@ -142,17 +135,12 @@ section[data-testid="stSidebar"]>div{
     font-size:.70rem;
     font-weight:800;
     letter-spacing:1.5px;
-    margin:25px 0 8px
-}
-
-div[data-testid="stSidebar"] div[role="radiogroup"]{
-    gap:10px;
-    width:100%
+    margin:25px 0 8px;
 }
 
 section[data-testid="stSidebar"] .stButton{
     width:100%!important;
-    margin:0 0 10px!important
+    margin:0 0 10px!important;
 }
 
 section[data-testid="stSidebar"] .stButton>button{
@@ -163,32 +151,24 @@ section[data-testid="stSidebar"] .stButton>button{
     text-align:left!important;
     border-radius:10px!important;
     border:1px solid rgba(76,122,255,.24)!important;
-    background:linear-gradient(
-        135deg,
-        rgba(16,22,37,.98),
-        rgba(10,14,25,.98)
-    )!important;
+    background:linear-gradient(135deg,rgba(16,22,37,.98),rgba(10,14,25,.98))!important;
     color:#dce6fa!important;
     font-size:.92rem!important;
     font-weight:750!important;
-    box-shadow:none!important
+    box-shadow:none!important;
 }
 
 section[data-testid="stSidebar"] .stButton>button:hover{
     border-color:rgba(0,210,255,.75)!important;
     transform:translateX(3px)!important;
-    box-shadow:0 0 20px rgba(33,133,255,.20)!important
+    box-shadow:0 0 20px rgba(33,133,255,.20)!important;
 }
 
 section[data-testid="stSidebar"] .stButton>button[kind="primary"]{
-    background:linear-gradient(
-        90deg,
-        rgba(21,116,255,.98),
-        rgba(112,49,235,.98)
-    )!important;
+    background:linear-gradient(90deg,rgba(21,116,255,.98),rgba(112,49,235,.98))!important;
     color:white!important;
     border-color:rgba(138,201,255,.8)!important;
-    box-shadow:0 0 22px rgba(71,100,255,.30)!important
+    box-shadow:0 0 22px rgba(71,100,255,.30)!important;
 }
 
 .sidebar-status{
@@ -196,7 +176,7 @@ section[data-testid="stSidebar"] .stButton>button[kind="primary"]{
     padding:14px;
     border:1px solid rgba(83,130,255,.20);
     border-radius:12px;
-    background:rgba(10,14,25,.8)
+    background:rgba(10,14,25,.8);
 }
 
 .dot{
@@ -206,36 +186,23 @@ section[data-testid="stSidebar"] .stButton>button[kind="primary"]{
     background:#20e889;
     border-radius:50%;
     box-shadow:0 0 10px #20e889;
-    margin-right:7px
+    margin-right:7px;
 }
 
 .top-title{
     font-size:2.4rem;
     font-weight:800;
-    margin:0
+    margin:0;
 }
 
 .top-title span{
-    color:#39a7ff
+    color:#39a7ff;
 }
 
 .top-subtitle{
     color:#a0aabd;
     font-size:1.05rem;
-    margin-top:4px
-}
-
-.status-pill{
-    display:inline-flex;
-    align-items:center;
-    gap:5px;
-    padding:8px 12px;
-    border:1px solid rgba(71,221,156,.25);
-    background:rgba(18,48,39,.35);
-    border-radius:999px;
-    color:#48e99a;
-    font-size:.78rem;
-    font-weight:700
+    margin-top:4px;
 }
 
 .hero-line{
@@ -246,29 +213,59 @@ section[data-testid="stSidebar"] .stButton>button[kind="primary"]{
         rgba(130,60,255,.32),
         transparent
     );
-    margin:22px 0 26px
+    margin:22px 0 26px;
+}
+
+/* =====================================================
+   ALINHAMENTO DOS FILTROS E BOTÕES
+   ===================================================== */
+
+.top-controls{
+    display:flex;
+    align-items:flex-end;
+}
+
+.top-controls [data-testid="column"]{
+    display:flex;
+    flex-direction:column;
+    justify-content:flex-end;
+}
+
+.top-controls .stButton{
+    margin-top:0!important;
+}
+
+.top-controls .stButton>button,
+.top-controls .stDownloadButton>button{
+    min-height:42px!important;
+    height:42px!important;
+    margin-top:0!important;
+}
+
+.top-controls div[data-baseweb="select"]{
+    min-height:42px!important;
+}
+
+.top-controls div[data-baseweb="select"]>div{
+    min-height:42px!important;
 }
 
 .stButton>button,
 .stDownloadButton>button{
     border-radius:10px!important;
     border:1px solid rgba(68,137,255,.55)!important;
-    background:linear-gradient(
-        100deg,
-        #0876df,
-        #5631d6
-    )!important;
+    background:linear-gradient(100deg,#0876df,#5631d6)!important;
     color:#fff!important;
     font-weight:700!important;
     min-height:42px!important;
     box-shadow:0 0 18px rgba(47,128,255,.16);
-    transition:.2s ease!important
+    transition:.2s ease!important;
 }
 
 .stButton>button:hover,
 .stDownloadButton>button:hover{
     transform:translateY(-2px);
-    box-shadow:0 0 25px rgba(103,67,255,.35)
+    box-shadow:0 0 25px rgba(103,67,255,.35);
 }
 
 .metric-card{
@@ -284,13 +281,13 @@ section[data-testid="stSidebar"] .stButton>button[kind="primary"]{
         rgba(7,11,20,.92)
     );
     box-shadow:0 12px 35px rgba(0,0,0,.24);
-    transition:.25s ease
+    transition:.25s ease;
 }
 
 .metric-card:hover{
     transform:translateY(-2px);
     border-color:rgba(70,157,255,.45);
-    box-shadow:0 16px 40px rgba(25,75,170,.18)
+    box-shadow:0 16px 40px rgba(25,75,170,.18);
 }
 
 .metric-card:after{
@@ -305,39 +302,31 @@ section[data-testid="stSidebar"] .stButton>button[kind="primary"]{
         circle,
         rgba(37,131,255,.20),
         transparent 70%
-    )
+    );
 }
 
 .metric-label{
     color:#9ca8bc;
     font-size:.78rem;
-    font-weight:700
+    font-weight:700;
 }
 
 .metric-value{
     font-family:Orbitron,sans-serif;
     font-size:1.7rem;
     font-weight:700;
-    margin-top:8px
+    margin-top:8px;
 }
 
 .metric-foot{
     color:#718097;
     font-size:.72rem;
-    margin-top:7px
+    margin-top:7px;
 }
 
-.icon-blue{
-    color:#4aa8ff
-}
-
-.icon-purple{
-    color:#a871ff
-}
-
-.icon-cyan{
-    color:#4de8ff
-}
+.icon-blue{color:#4aa8ff}
+.icon-purple{color:#a871ff}
+.icon-cyan{color:#4de8ff}
 
 .panel{
     border:1px solid rgba(88,130,230,.20);
@@ -348,40 +337,35 @@ section[data-testid="stSidebar"] .stButton>button[kind="primary"]{
     );
     border-radius:15px;
     padding:16px;
-    box-shadow:0 15px 40px rgba(0,0,0,.22)
+    box-shadow:0 15px 40px rgba(0,0,0,.22);
 }
 
 .panel-title{
     font-size:1rem;
     font-weight:800;
-    margin-bottom:4px
+    margin-bottom:4px;
 }
 
 .panel-sub{
     color:#77849a;
-    font-size:.75rem
-}
-
-.data-title{
-    font-size:1.15rem;
-    font-weight:800
+    font-size:.75rem;
 }
 
 .section-title{
     font-size:1.22rem;
     font-weight:800;
-    margin:5px 0 2px
+    margin:5px 0 2px;
 }
 
 .section-subtitle{
     color:#7d8ba2;
     font-size:.78rem;
-    margin-bottom:12px
+    margin-bottom:12px;
 }
 
 .summary-panel{
     height:100%;
-    min-height:390px
+    min-height:390px;
 }
 
 .summary-row{
@@ -390,45 +374,39 @@ section[data-testid="stSidebar"] .stButton>button[kind="primary"]{
     gap:12px;
     margin:12px 0;
     color:#8290a7;
-    font-size:.8rem
+    font-size:.8rem;
 }
 
 .summary-row b{
-    color:#f3f6ff
-}
-
-[data-testid="stDataFrame"]{
-    border:1px solid rgba(76,122,255,.20);
-    border-radius:12px;
-    overflow:hidden
-}
-
-div[data-baseweb="select"]>div,
-div[data-baseweb="input"]>div{
-    background:#0c111e!important;
-    border-color:rgba(76,122,255,.25)!important
-}
-
-div[data-baseweb="select"] span{
-    color:#e8efff!important
+    color:#f3f6ff;
 }
 
 .stSelectbox label,
 .stTextInput label{
     color:#8cdfff!important;
-    font-weight:700!important
+    font-weight:700!important;
+}
+
+div[data-baseweb="select"]>div,
+div[data-baseweb="input"]>div{
+    background:#0c111e!important;
+    border-color:rgba(76,122,255,.25)!important;
+}
+
+div[data-baseweb="select"] span{
+    color:#e8efff!important;
 }
 
 .footer{
     color:#59677d;
     font-size:.68rem;
     text-align:center;
-    padding:20px 0 0
+    padding:20px 0 0;
 }
 
 .small-note{
     color:#6f7e96;
-    font-size:.72rem
+    font-size:.72rem;
 }
 
 .automation-note{
@@ -445,43 +423,132 @@ div[data-baseweb="select"] span{
         rgba(12,22,38,.65)
     );
     color:#b8c8da;
-    font-size:.80rem
+    font-size:.80rem;
 }
 
 .automation-note b{
-    color:#53efa5
+    color:#53efa5;
 }
 
 [data-testid="stExpander"]{
     border:1px solid rgba(83,130,255,.25)!important;
     border-radius:11px!important;
     background:rgba(10,15,27,.70)!important;
-    margin-bottom:9px!important
+    margin-bottom:9px!important;
 }
 
 [data-testid="stExpander"] summary{
     font-weight:750!important;
-    color:#e9f1ff!important
+    color:#e9f1ff!important;
 }
 
-.lote-header{
-    display:flex;
-    align-items:center;
-    gap:10px;
-    margin-bottom:5px
+/* =====================================================
+   TABELAS AMIRA
+   Substitui a aparência branca do dataframe nativo.
+   ===================================================== */
+
+.amira-table-wrap{
+    width:100%;
+    max-height:520px;
+    overflow:auto;
+    border:1px solid rgba(76,122,255,.25);
+    border-radius:12px;
+    background:#08101c;
+    box-shadow:
+        inset 0 0 25px rgba(22,78,160,.06),
+        0 10px 30px rgba(0,0,0,.18);
 }
 
-.lote-badge{
-    display:inline-block;
-    padding:5px 10px;
-    border-radius:7px;
-    background:rgba(47,128,255,.14);
-    border:1px solid rgba(47,128,255,.35);
-    color:#65b7ff;
-    font-size:.72rem;
-    font-weight:800
+.amira-table{
+    width:100%;
+    border-collapse:separate;
+    border-spacing:0;
+    color:#e9f1ff;
+    font-size:.84rem;
 }
 
+.amira-table th{
+    position:sticky;
+    top:0;
+    z-index:2;
+    padding:12px 10px;
+    text-align:left;
+    font-weight:800;
+    color:#f4f7ff;
+    background:linear-gradient(
+        135deg,
+        #101b2d,
+        #121a2c
+    );
+    border-bottom:1px solid rgba(76,145,255,.38);
+    white-space:nowrap;
+}
+
+.amira-table td{
+    padding:10px;
+    border-bottom:1px solid rgba(76,122,255,.14);
+    background:#0a1422;
+    color:#dbe6f8;
+    white-space:nowrap;
+}
+
+.amira-table tbody tr:nth-child(even) td{
+    background:#0c1727;
+}
+
+.amira-table tbody tr:hover td{
+    background:#10223a;
+    color:#ffffff;
+}
+
+.amira-table th:first-child{
+    border-top-left-radius:11px;
+}
+
+.amira-table th:last-child{
+    border-top-right-radius:11px;
+}
+
+.amira-table .num{
+    text-align:right;
+}
+
+.lote-filter-info{
+    margin-top:8px;
+    padding:11px 14px;
+    border:1px solid rgba(32,232,137,.38);
+    border-radius:11px;
+    background:linear-gradient(
+        90deg,
+        rgba(8,61,42,.58),
+        rgba(7,27,30,.70)
+    );
+    color:#bfe9d3;
+    font-size:.78rem;
+}
+
+.lote-filter-info b{
+    color:#37ef9b;
+}
+
+.lote-panel{
+    margin-top:22px;
+}
+
+.lote-total{
+    color:#5bb0ff;
+    font-weight:800;
+}
+
+.lote-count{
+    color:#a875ff;
+    font-weight:800;
+}
+
+/* Remove espaços excessivos dos containers */
+div[data-testid="stVerticalBlock"] > div:has(.amira-table-wrap){
+    gap:0!important;
+}
 </style>
 """,
     unsafe_allow_html=True,
@@ -489,33 +556,22 @@ div[data-baseweb="select"] span{
 
 
 # =========================================================
-# FUNÇÕES DE TRATAMENTO DE DADOS
+# FUNÇÕES DE DADOS
 # =========================================================
 
 def vazio():
     return pd.DataFrame(
-        columns=[
-            "Data",
-            "Hora",
-            "Peso (kg)",
-            "Lote"
-        ]
+        columns=["Data", "Hora", "Peso (kg)", "Lote"]
     )
 
 
-# =========================================================
-# CORREÇÃO DA DATA
-# =========================================================
-
 def formatar_data_planilha(valor):
-
     if pd.isna(valor) or str(valor).strip() == "":
         return None
 
     texto = str(valor).strip()
 
     try:
-
         data = pd.to_datetime(
             texto,
             format="%d/%m/%Y",
@@ -529,9 +585,7 @@ def formatar_data_planilha(valor):
         pass
 
     try:
-
         if "T" in texto or texto.endswith("Z"):
-
             data = pd.to_datetime(
                 texto,
                 utc=True,
@@ -539,10 +593,7 @@ def formatar_data_planilha(valor):
             )
 
             if not pd.isna(data):
-
-                return data.tz_convert(
-                    TZ
-                ).strftime("%d/%m/%Y")
+                return data.tz_convert(TZ).strftime("%d/%m/%Y")
 
         data = pd.to_datetime(
             texto,
@@ -551,7 +602,6 @@ def formatar_data_planilha(valor):
         )
 
         if not pd.isna(data):
-
             return data.strftime("%d/%m/%Y")
 
     except (TypeError, ValueError):
@@ -560,12 +610,7 @@ def formatar_data_planilha(valor):
     return texto
 
 
-# =========================================================
-# CORREÇÃO DO HORÁRIO
-# =========================================================
-
 def formatar_hora_planilha(valor):
-
     if pd.isna(valor) or str(valor).strip() == "":
         return None
 
@@ -577,16 +622,11 @@ def formatar_hora_planilha(valor):
     )
 
     if hora:
-
         horas = int(hora.group(1))
         minutos = hora.group(2)
         segundos = hora.group(3) or "00"
 
-        return (
-            f"{horas:02d}:"
-            f"{minutos}:"
-            f"{segundos}"
-        )
+        return f"{horas:02d}:{minutos}:{segundos}"
 
     marco_excel = re.match(
         r"^1899-12-\d{2}T(\d{2}:\d{2}:\d{2})",
@@ -597,9 +637,7 @@ def formatar_hora_planilha(valor):
         return marco_excel.group(1)
 
     try:
-
         if "T" in texto or texto.endswith("Z"):
-
             data = pd.to_datetime(
                 texto,
                 utc=True,
@@ -607,10 +645,7 @@ def formatar_hora_planilha(valor):
             )
 
             if not pd.isna(data):
-
-                return data.tz_convert(
-                    TZ
-                ).strftime("%H:%M:%S")
+                return data.tz_convert(TZ).strftime("%H:%M:%S")
 
     except (TypeError, ValueError):
         pass
@@ -618,12 +653,33 @@ def formatar_hora_planilha(valor):
     return texto
 
 
-# =========================================================
-# NORMALIZAÇÃO
-# =========================================================
+def normalizar_lote(valor):
+    """
+    Mantém lotes iguais juntos mesmo quando a planilha
+    vier com pequenas diferenças de formatação.
+
+    Exemplos:
+    1524 -> 1524
+    1524.0 -> 1524
+    " 1524 " -> 1524
+    """
+    if pd.isna(valor):
+        return "Sem lote"
+
+    texto = str(valor).strip()
+
+    if not texto:
+        return "Sem lote"
+
+    texto = re.sub(r"\s+", " ", texto)
+
+    if re.fullmatch(r"\d+\.0+", texto):
+        texto = texto.split(".")[0]
+
+    return texto
+
 
 def normalizar_colunas(df: pd.DataFrame) -> pd.DataFrame:
-
     if df is None or df.empty:
         return vazio()
 
@@ -632,7 +688,6 @@ def normalizar_colunas(df: pd.DataFrame) -> pd.DataFrame:
     renomear = {}
 
     for c in df.columns:
-
         chave = (
             str(c)
             .strip()
@@ -646,24 +701,18 @@ def normalizar_colunas(df: pd.DataFrame) -> pd.DataFrame:
             "peso(kg)",
             "pesokg"
         }:
-
             renomear[c] = "Peso (kg)"
 
         elif chave == "data":
-
             renomear[c] = "Data"
 
         elif chave == "hora":
-
             renomear[c] = "Hora"
 
         elif chave == "lote":
-
             renomear[c] = "Lote"
 
-    df = df.rename(
-        columns=renomear
-    )
+    df = df.rename(columns=renomear)
 
     for col in [
         "Data",
@@ -671,7 +720,6 @@ def normalizar_colunas(df: pd.DataFrame) -> pd.DataFrame:
         "Peso (kg)",
         "Lote"
     ]:
-
         if col not in df.columns:
             df[col] = None
 
@@ -688,15 +736,8 @@ def normalizar_colunas(df: pd.DataFrame) -> pd.DataFrame:
         formatar_hora_planilha
     )
 
-    # -----------------------------------------------------
-    # NORMALIZA O LOTE
-    # -----------------------------------------------------
-
-    df["Lote"] = (
-        df["Lote"]
-        .fillna("")
-        .astype(str)
-        .str.strip()
+    df["Lote"] = df["Lote"].map(
+        normalizar_lote
     )
 
     return (
@@ -712,12 +753,9 @@ def normalizar_colunas(df: pd.DataFrame) -> pd.DataFrame:
             subset=["Peso (kg)"],
             how="all"
         )
+        .reset_index(drop=True)
     )
 
-
-# =========================================================
-# CARREGAMENTO GOOGLE APPS SCRIPT
-# =========================================================
 
 @st.cache_data(ttl=15)
 def carregar_dados_todas_abas():
@@ -732,10 +770,8 @@ def carregar_dados_todas_abas():
     dados = resposta.json()
 
     if not isinstance(dados, dict):
-
         raise ValueError(
-            "O Google Apps Script não devolveu "
-            "um JSON de abas."
+            "O Google Apps Script não devolveu um JSON de abas."
         )
 
     resultado = {}
@@ -751,30 +787,20 @@ def carregar_dados_todas_abas():
         cabecalho = conteudo[0]
         linhas = conteudo[1:]
 
-        if not isinstance(
-            cabecalho,
-            list
-        ):
+        if not isinstance(cabecalho, list):
             continue
 
-        resultado[str(nome_aba)] = (
-            normalizar_colunas(
-                pd.DataFrame(
-                    linhas,
-                    columns=cabecalho
-                )
+        resultado[str(nome_aba)] = normalizar_colunas(
+            pd.DataFrame(
+                linhas,
+                columns=cabecalho
             )
         )
 
     return resultado
 
 
-# =========================================================
-# DATA DAS ABAS
-# =========================================================
-
 def chave_aba(nome):
-
     data = data_da_aba(nome)
 
     return (
@@ -788,21 +814,17 @@ def chave_aba(nome):
 
 
 def data_da_aba(nome):
-
     texto = str(nome)
 
     for padrao, formato in [
-
         (
             r"(?<!\d)(\d{2}-\d{2}-\d{4})(?!\d)",
             "%d-%m-%Y"
         ),
-
         (
             r"(?<!\d)(\d{4}-\d{2}-\d{2})(?!\d)",
             "%Y-%m-%d"
         ),
-
     ]:
 
         encontrado = re.search(
@@ -811,9 +833,7 @@ def data_da_aba(nome):
         )
 
         if encontrado:
-
             try:
-
                 return datetime.strptime(
                     encontrado.group(1),
                     formato
@@ -826,7 +846,6 @@ def data_da_aba(nome):
 
 
 def rotulo_aba(nome):
-
     data = data_da_aba(nome)
 
     return (
@@ -836,12 +855,7 @@ def rotulo_aba(nome):
     )
 
 
-# =========================================================
-# FORMATAÇÃO DE NÚMEROS
-# =========================================================
-
 def formatar_numero(valor):
-
     return (
         f"{valor:,.2f}"
         .replace(",", "X")
@@ -851,7 +865,95 @@ def formatar_numero(valor):
 
 
 # =========================================================
-# GERA EXCEL
+# TABELA ESCURA AMIRA
+# =========================================================
+
+def tabela_amira(df, numero=True, max_height=520):
+    """
+    Renderiza a tabela com HTML/CSS próprio da AMIRA.
+    Assim ela não muda para branco quando o tema externo
+    do navegador/Google estiver claro.
+    """
+
+    if df is None or df.empty:
+        st.info("Nenhum registro para exibir.")
+        return
+
+    tabela = df.copy()
+
+    html = f"""
+    <div class="amira-table-wrap"
+         style="max-height:{max_height}px;">
+        <table class="amira-table">
+            <thead>
+                <tr>
+    """
+
+    for coluna in tabela.columns:
+        classe = "num" if (
+            numero and coluna == "Peso (kg)"
+        ) else ""
+
+        html += (
+            f'<th class="{classe}">'
+            f'{coluna}'
+            f'</th>'
+        )
+
+    html += """
+                </tr>
+            </thead>
+            <tbody>
+    """
+
+    for _, linha in tabela.iterrows():
+
+        html += "<tr>"
+
+        for coluna in tabela.columns:
+
+            valor = linha[coluna]
+
+            if pd.isna(valor):
+                valor = ""
+
+            elif coluna == "Peso (kg)":
+                try:
+                    valor = formatar_numero(
+                        float(valor)
+                    )
+                except (TypeError, ValueError):
+                    valor = str(valor)
+
+            else:
+                valor = str(valor)
+
+            classe = "num" if (
+                numero and coluna == "Peso (kg)"
+            ) else ""
+
+            html += (
+                f'<td class="{classe}">'
+                f'{valor}'
+                f'</td>'
+            )
+
+        html += "</tr>"
+
+    html += """
+            </tbody>
+        </table>
+    </div>
+    """
+
+    st.markdown(
+        html,
+        unsafe_allow_html=True
+    )
+
+
+# =========================================================
+# XLSX
 # =========================================================
 
 def gerar_xlsx(df: pd.DataFrame) -> bytes:
@@ -861,16 +963,11 @@ def gerar_xlsx(df: pd.DataFrame) -> bytes:
     try:
 
         from openpyxl import Workbook
-
-        from openpyxl.styles import (
-            Font,
-            PatternFill
-        )
+        from openpyxl.styles import Font, PatternFill
 
         wb = Workbook()
 
         ws = wb.active
-
         ws.title = "Registros"
 
         cab = list(df.columns)
@@ -878,7 +975,6 @@ def gerar_xlsx(df: pd.DataFrame) -> bytes:
         ws.append(cab)
 
         for cell in ws[1]:
-
             cell.font = Font(
                 bold=True,
                 color="FFFFFF"
@@ -893,38 +989,24 @@ def gerar_xlsx(df: pd.DataFrame) -> bytes:
             index=False,
             name=None
         ):
-
-            ws.append(
-                list(row)
-            )
+            ws.append(list(row))
 
         ws.freeze_panes = "A2"
-
         ws.auto_filter.ref = ws.dimensions
 
         for col in ws.columns:
 
-            letra = (
-                col[0]
-                .column_letter
-            )
+            letra = col[0].column_letter
 
             maior = max(
-                len(
-                    str(
-                        c.value or ""
-                    )
-                )
+                len(str(c.value or ""))
                 for c in col
             )
 
             ws.column_dimensions[
                 letra
             ].width = min(
-                max(
-                    maior + 2,
-                    12
-                ),
+                max(maior + 2, 12),
                 28
             )
 
@@ -937,19 +1019,14 @@ def gerar_xlsx(df: pd.DataFrame) -> bytes:
         return df.to_csv(
             index=False,
             sep=";"
-        ).encode(
-            "utf-8-sig"
-        )
+        ).encode("utf-8-sig")
 
 
 # =========================================================
-# LAYOUT DOS GRÁFICOS
+# GRÁFICOS
 # =========================================================
 
-def grafico_layout(
-    fig,
-    height=300
-):
+def grafico_layout(fig, height=300):
 
     fig.update_layout(
         template="plotly_dark",
@@ -989,23 +1066,18 @@ def mostrar_metricas(df):
     total_caixas = len(df)
 
     peso_total = (
-        float(
-            df["Peso (kg)"].sum()
-        )
+        float(df["Peso (kg)"].sum())
         if not df.empty
         else 0
     )
 
     media = (
-        float(
-            df["Peso (kg)"].mean()
-        )
+        float(df["Peso (kg)"].mean())
         if not df.empty
         else 0
     )
 
     cards = [
-
         (
             "📦",
             "Caixas Passadas",
@@ -1013,17 +1085,13 @@ def mostrar_metricas(df):
             "Registros filtrados",
             "cyan"
         ),
-
         (
             "⚖",
             "Peso Total (kg)",
-            formatar_numero(
-                peso_total
-            ),
+            formatar_numero(peso_total),
             "Peso acumulado",
             "blue"
         ),
-
         (
             "◈",
             "Média por Caixa",
@@ -1031,7 +1099,6 @@ def mostrar_metricas(df):
             "Média dos registros",
             "purple"
         ),
-
     ]
 
     cols = st.columns(3)
@@ -1042,121 +1109,85 @@ def mostrar_metricas(df):
         value,
         foot,
         color
-    ) in zip(
-        cols,
-        cards
-    ):
+    ) in zip(cols, cards):
 
         with col:
 
             st.markdown(
                 f"""
-<div class='metric-card'>
+                <div class="metric-card">
+                    <div class="metric-label">
+                        <span class="icon-{color}">
+                            {icon}
+                        </span>
+                        &nbsp;&nbsp;{label}
+                    </div>
 
-<div class='metric-label'>
+                    <div class="metric-value">
+                        {value}
+                    </div>
 
-<span class='icon-{color}'>
-
-{icon}
-
-</span>
-
-&nbsp;&nbsp;
-
-{label}
-
-</div>
-
-<div class='metric-value'>
-
-{value}
-
-</div>
-
-<div class='metric-foot'>
-
-{foot}
-
-</div>
-
-</div>
-""",
+                    <div class="metric-foot">
+                        {foot}
+                    </div>
+                </div>
+                """,
                 unsafe_allow_html=True
             )
 
 
-# =========================================================
-# RESUMO DO DIA
-# =========================================================
-
 def resumo_dia(df):
 
     peso_total = (
-        float(
-            df["Peso (kg)"].sum()
-        )
+        float(df["Peso (kg)"].sum())
         if not df.empty
         else 0
     )
 
     media = (
-        float(
-            df["Peso (kg)"].mean()
-        )
+        float(df["Peso (kg)"].mean())
         if not df.empty
         else 0
     )
 
     total_caixas = len(df)
 
-    return (
-        peso_total,
-        media,
-        total_caixas
+    return peso_total, media, total_caixas
+
+
+# =========================================================
+# AGRUPAMENTO POR LOTE
+# =========================================================
+
+def agrupar_por_lote(df):
+    """
+    Junta todas as pesagens que possuem o mesmo lote.
+
+    Exemplo:
+    Lote 1524
+    19,4 + 19,7 + 18,9 + ...
+    =
+    Peso total do lote 1524.
+    """
+
+    if df is None or df.empty:
+        return pd.DataFrame(
+            columns=[
+                "Lote",
+                "Pesagens",
+                "Peso total (kg)",
+                "Média (kg)"
+            ]
+        )
+
+    trabalho = df.copy()
+
+    trabalho["Lote"] = trabalho["Lote"].map(
+        normalizar_lote
     )
 
-
-# =========================================================
-# NOVA FUNÇÃO
-# RESUMO DOS LOTES
-# =========================================================
-
-def resumo_por_lote(df):
-
-    if df.empty:
-
-        return pd.DataFrame(
-            columns=[
-                "Lote",
-                "Pesagens",
-                "Peso total (kg)",
-                "Média (kg)"
-            ]
-        )
-
-    temp = df.copy()
-
-    # -----------------------------------------------------
-    # Remove registros sem lote
-    # -----------------------------------------------------
-
-    temp = temp[
-        temp["Lote"].astype(str).str.strip() != ""
-    ]
-
-    if temp.empty:
-
-        return pd.DataFrame(
-            columns=[
-                "Lote",
-                "Pesagens",
-                "Peso total (kg)",
-                "Média (kg)"
-            ]
-        )
-
-    resumo = (
-        temp
+    agrupado = (
+        trabalho
         .groupby("Lote", dropna=False)
         .agg(
             Pesagens=("Peso (kg)", "count"),
@@ -1174,79 +1205,190 @@ def resumo_por_lote(df):
         .reset_index()
     )
 
-    resumo = resumo.sort_values(
-        by="Lote",
-        key=lambda coluna: coluna.astype(str)
+    def ordem_lote(valor):
+        texto = str(valor)
+
+        if texto.isdigit():
+            return (0, int(texto))
+
+        return (1, texto.lower())
+
+    agrupado["_ordem"] = agrupado["Lote"].map(
+        ordem_lote
     )
 
-    return resumo
-
-
-# =========================================================
-# FILTRO DE LOTES
-# =========================================================
-
-def aplicar_filtro_lote(df):
-
-    if df.empty:
-
-        return df, "Todos os lotes"
-
-    # -----------------------------------------------------
-    # Pega automaticamente os lotes existentes
-    # -----------------------------------------------------
-
-    lotes = (
-        df["Lote"]
-        .fillna("")
-        .astype(str)
-        .str.strip()
+    agrupado = (
+        agrupado
+        .sort_values("_ordem")
+        .drop(columns="_ordem")
+        .reset_index(drop=True)
     )
 
-    lotes_validos = sorted(
-        [
-            lote
-            for lote in lotes.unique()
-            if lote != ""
-        ],
-        key=lambda x: str(x)
+    return agrupado
+
+
+def mostrar_producao_por_lote(df):
+
+    agrupado = agrupar_por_lote(df)
+
+    st.markdown(
+        """
+        <div class="panel lote-panel">
+            <div class="panel-title"
+                 style="font-size:1.15rem;">
+                📦 Produção por Lote
+            </div>
+
+            <div class="panel-sub"
+                 style="font-size:.80rem;margin-bottom:14px;">
+                O sistema agrupa automaticamente todas as
+                pesagens que possuem o mesmo lote.
+            </div>
+        """,
+        unsafe_allow_html=True
     )
 
-    opcoes_lote = [
-        "Todos os lotes"
-    ] + lotes_validos
+    if agrupado.empty:
 
-    # -----------------------------------------------------
-    # Selectbox
-    # -----------------------------------------------------
+        st.info(
+            "Não há lotes para agrupar."
+        )
 
-    lote_selecionado = st.selectbox(
-        "🔎 Filtrar por lote",
-        options=opcoes_lote,
-        index=0,
-        key="filtro_lote_amira"
+        st.markdown("</div>", unsafe_allow_html=True)
+
+        return
+
+    tabela = agrupado.copy()
+
+    tabela["Peso total (kg)"] = tabela[
+        "Peso total (kg)"
+    ].round(2)
+
+    tabela["Média (kg)"] = tabela[
+        "Média (kg)"
+    ].round(2)
+
+    tabela["Pesagens"] = tabela[
+        "Pesagens"
+    ].astype(int)
+
+    tabela_exibicao = tabela.copy()
+
+    tabela_exibicao["Peso total (kg)"] = (
+        tabela_exibicao["Peso total (kg)"]
+        .map(formatar_numero)
     )
 
-    # -----------------------------------------------------
-    # Aplica filtro
-    # -----------------------------------------------------
-
-    if lote_selecionado == "Todos os lotes":
-
-        return df.copy(), lote_selecionado
-
-    df_filtrado = df[
-        df["Lote"]
-        .fillna("")
-        .astype(str)
-        .str.strip()
-        == str(lote_selecionado)
-    ].copy()
-
-    return (
-        df_filtrado,
-        lote_selecionado
+    tabela_exibicao["Média (kg)"] = (
+        tabela_exibicao["Média (kg)"]
+        .map(formatar_numero)
     )
+
+    tabela_exibicao = tabela_exibicao.rename(
+        columns={
+            "Pesagens": "Pesagens",
+            "Peso total (kg)": "Peso total (kg)",
+            "Média (kg)": "Média (kg)"
+        }
+    )
+
+    # -----------------------------------------------
+    # TABELA + GRÁFICOS
+    # -----------------------------------------------
+
+    col_tabela, col_graficos = st.columns(
+        [1.05, 1.25]
+    )
+
+    with col_tabela:
+
+        tabela_amira(
+            tabela_exibicao,
+            max_height=360
+        )
+
+    with col_graficos:
+
+        fig_peso = px.bar(
+            agrupado,
+            x="Lote",
+            y="Peso total (kg)",
+            text="Peso total (kg)"
+        )
+
+        fig_peso.update_traces(
+            marker_color="#2f80ff",
+            texttemplate="%{text:.2f}",
+            textposition="outside",
+            cliponaxis=False
+        )
+
+        fig_peso.update_layout(
+            yaxis_title="Peso (kg)",
+            xaxis_title="Lote"
+        )
+
+        st.markdown(
+            """
+            <div class="panel-title">
+                ⚖ Peso total por lote
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        st.plotly_chart(
+            grafico_layout(
+                fig_peso,
+                height=280
+            ),
+            use_container_width=True,
+            config={
+                "displayModeBar": False
+            }
+        )
+
+        fig_qtd = px.bar(
+            agrupado,
+            x="Lote",
+            y="Pesagens",
+            text="Pesagens"
+        )
+
+        fig_qtd.update_traces(
+            marker_color="#8a35ff",
+            texttemplate="%{text}",
+            textposition="outside",
+            cliponaxis=False
+        )
+
+        fig_qtd.update_layout(
+            yaxis_title="Quantidade",
+            xaxis_title="Lote"
+        )
+
+        st.markdown(
+            """
+            <div class="panel-title"
+                 style="margin-top:8px;">
+                📦 Pesagens por lote
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+        st.plotly_chart(
+            grafico_layout(
+                fig_qtd,
+                height=260
+            ),
+            use_container_width=True,
+            config={
+                "displayModeBar": False
+            }
+        )
+
+    st.markdown("</div>", unsafe_allow_html=True)
 
 
 # =========================================================
@@ -1255,16 +1397,12 @@ def aplicar_filtro_lote(df):
 
 try:
 
-    dados_abas = (
-        carregar_dados_todas_abas()
-    )
-
+    dados_abas = carregar_dados_todas_abas()
     erro_api = None
 
 except Exception as erro:
 
     dados_abas = {}
-
     erro_api = str(erro)
 
 
@@ -1276,22 +1414,24 @@ lista_abas = sorted(
 
 
 # =========================================================
-# DIA ATUAL
+# ESTADO
 # =========================================================
 
 dia_atual = st.session_state.get(
     "dia_selecionado",
-    lista_abas[0]
-    if lista_abas
-    else None
+    lista_abas[0] if lista_abas else None
 )
 
 if (
     dia_atual not in lista_abas
     and lista_abas
 ):
-
     dia_atual = lista_abas[0]
+
+lote_atual = st.session_state.get(
+    "lote_selecionado",
+    "Todos os lotes"
+)
 
 
 # =========================================================
@@ -1316,29 +1456,23 @@ with st.sidebar:
 
     st.markdown(
         """
-<div class='brand-small'>
+        <div class="brand-small">
+            Sistema <span>AMIRA</span>
+        </div>
 
-Sistema <span>AMIRA</span>
-
-</div>
-
-<div class='side-caption'>
-
-Monitoramento • Automação • Precisão
-
-</div>
-""",
+        <div class="side-caption">
+            Monitoramento • Automação • Precisão
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
     st.markdown(
         """
-<div class='nav-title'>
-
-MENU DE NAVEGAÇÃO
-
-</div>
-""",
+        <div class="nav-title">
+            MENU DE NAVEGAÇÃO
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
@@ -1353,9 +1487,7 @@ MENU DE NAVEGAÇÃO
         opcoes_menu[0]
     )
 
-    for indice, opcao in enumerate(
-        opcoes_menu
-    ):
+    for indice, opcao in enumerate(opcoes_menu):
 
         if st.button(
             opcao,
@@ -1372,48 +1504,33 @@ MENU DE NAVEGAÇÃO
                 "menu_amira"
             ] = opcao
 
-            # Reseta filtro de lote
-            if "filtro_lote_amira" in st.session_state:
-                del st.session_state[
-                    "filtro_lote_amira"
-                ]
-
             st.rerun()
 
     st.markdown(
         """
-<div class='sidebar-status'>
+        <div class="sidebar-status">
+            <div style="font-weight:800;">
+                Sistema AMIRA
+            </div>
 
-<div style='font-weight:800;'>
-
-Sistema AMIRA
-
-</div>
-
-<div style='color:#7f8da4;
-font-size:.75rem;margin-top:5px;'>
-
-<span class='dot'></span>
-
-Monitoramento ativo
-
-</div>
-
-</div>
-""",
+            <div style="color:#7f8da4;
+                        font-size:.75rem;
+                        margin-top:5px;">
+                <span class="dot"></span>
+                Monitoramento ativo
+            </div>
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
     st.markdown(
         """
-<div class='footer'>
-
-©️ 2026 AMIRA • SENAI<br>
-
-IoT • Automação • Precisão
-
-</div>
-""",
+        <div class="footer">
+            ©️ 2026 AMIRA • SENAI<br>
+            IoT • Automação • Precisão
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
@@ -1426,18 +1543,14 @@ if menu == "📋  Registro e Dados":
 
     st.markdown(
         """
-<div class='top-title'>
+        <div class="top-title">
+            Bem-vindo à <span>AMIRA</span>
+        </div>
 
-Bem-vindo à <span>AMIRA</span>
-
-</div>
-
-<div class='top-subtitle'>
-
-Sistema de Monitoramento e Registro de Produção
-
-</div>
-""",
+        <div class="top-subtitle">
+            Sistema de Monitoramento e Registro de Produção
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
@@ -1445,18 +1558,14 @@ elif menu == "📊  Gráficos e Análises":
 
     st.markdown(
         """
-<div class='top-title'>
+        <div class="top-title">
+            <span>Gráficos</span> e Análises
+        </div>
 
-<span>Gráficos</span> e Análises
-
-</div>
-
-<div class='top-subtitle'>
-
-Explore o histórico e compare dias e meses de produção.
-
-</div>
-""",
+        <div class="top-subtitle">
+            Explore o histórico e compare dias e meses de produção.
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
@@ -1464,18 +1573,14 @@ else:
 
     st.markdown(
         """
-<div class='top-title'>
+        <div class="top-title">
+            <span>Histórico</span> de Planilhas
+        </div>
 
-<span>Histórico</span> de Planilhas
-
-</div>
-
-<div class='top-subtitle'>
-
-Controle de lançamentos no sistema da empresa.
-
-</div>
-""",
+        <div class="top-subtitle">
+            Controle de lançamentos no sistema da empresa.
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
@@ -1487,15 +1592,26 @@ st.markdown(
 
 
 # =========================================================
-# BOTÕES SUPERIORES
+# CONTROLES SUPERIORES
+# Agora tudo fica alinhado na mesma linha.
 # =========================================================
 
-col_sel, col_space, col_b1, col_b2 = st.columns(
-    [1.5, 1.5, 1, 1]
+st.markdown(
+    '<div class="top-controls">',
+    unsafe_allow_html=True
+)
+
+col_dia, col_lote, col_b1, col_b2 = st.columns(
+    [1.25, 1.25, 0.9, 0.9],
+    gap="small"
 )
 
 
-with col_sel:
+# =========================================================
+# DIA
+# =========================================================
+
+with col_dia:
 
     if (
         menu == "📋  Registro e Dados"
@@ -1507,12 +1623,11 @@ with col_sel:
             options=lista_abas,
             format_func=rotulo_aba,
             index=(
-                lista_abas.index(
-                    dia_atual
-                )
+                lista_abas.index(dia_atual)
                 if dia_atual in lista_abas
                 else 0
             ),
+            key="select_dia_amira"
         )
 
         if (
@@ -1524,21 +1639,17 @@ with col_sel:
                 "dia_selecionado"
             ] = dia_selecionado_novo
 
-            # Reseta lote quando troca de dia
-            if "filtro_lote_amira" in st.session_state:
-                del st.session_state[
-                    "filtro_lote_amira"
-                ]
+            st.session_state[
+                "lote_selecionado"
+            ] = "Todos os lotes"
 
             st.rerun()
 
-        dia_atual = (
-            dia_selecionado_novo
-        )
+        dia_atual = dia_selecionado_novo
 
 
 # =========================================================
-# DATA DO DIA
+# DADOS DO DIA
 # =========================================================
 
 df = (
@@ -1555,20 +1666,76 @@ df = (
 # FILTRO DE LOTE
 # =========================================================
 
-df_filtrado = df.copy()
+with col_lote:
 
-lote_selecionado = "Todos os lotes"
+    if (
+        menu == "📋  Registro e Dados"
+        and not df.empty
+    ):
 
+        lotes_disponiveis = sorted(
+            df["Lote"]
+            .map(normalizar_lote)
+            .drop_duplicates()
+            .tolist(),
+            key=lambda x: (
+                0,
+                int(x)
+            ) if str(x).isdigit()
+            else (1, str(x).lower())
+        )
+
+        opcoes_lote = [
+            "Todos os lotes"
+        ] + lotes_disponiveis
+
+        if lote_atual not in opcoes_lote:
+            lote_atual = "Todos os lotes"
+
+        lote_selecionado_novo = st.selectbox(
+            "🔎 Filtrar por lote",
+            options=opcoes_lote,
+            index=opcoes_lote.index(
+                lote_atual
+            ),
+            key="select_lote_amira"
+        )
+
+        if (
+            lote_selecionado_novo
+            != lote_atual
+        ):
+
+            st.session_state[
+                "lote_selecionado"
+            ] = lote_selecionado_novo
+
+            st.rerun()
+
+        lote_atual = lote_selecionado_novo
+
+    elif menu != "📋  Registro e Dados":
+
+        st.empty()
+
+
+# =========================================================
+# APLICA FILTRO
+# =========================================================
 
 if (
     menu == "📋  Registro e Dados"
-    and not df.empty
+    and lote_atual != "Todos os lotes"
 ):
 
-    # O filtro será mostrado depois,
-    # na área principal da tela.
+    df_filtrado = df[
+        df["Lote"].map(normalizar_lote)
+        == lote_atual
+    ].copy()
 
-    pass
+else:
+
+    df_filtrado = df.copy()
 
 
 # =========================================================
@@ -1577,25 +1744,17 @@ if (
 
 with col_b1:
 
-    st.markdown(
-        "<div style='margin-top:28px;'></div>",
-        unsafe_allow_html=True
-    )
+    if menu == "📋  Registro e Dados":
 
-    if st.button(
-        "🔄 Recarregar Dados",
-        use_container_width=True
-    ):
+        if st.button(
+            "🔄 Recarregar Dados",
+            use_container_width=True,
+            key="recarregar_amira"
+        ):
 
-        carregar_dados_todas_abas.clear()
+            carregar_dados_todas_abas.clear()
 
-        if "filtro_lote_amira" in st.session_state:
-
-            del st.session_state[
-                "filtro_lote_amira"
-            ]
-
-        st.rerun()
+            st.rerun()
 
 
 # =========================================================
@@ -1604,54 +1763,34 @@ with col_b1:
 
 with col_b2:
 
-    st.markdown(
-        "<div style='margin-top:28px;'></div>",
-        unsafe_allow_html=True
-    )
-
     if (
-        dia_atual
-        and not df.empty
+        menu == "📋  Registro e Dados"
+        and dia_atual
+        and not df_filtrado.empty
     ):
-
-        # Se estiver na tela de registro,
-        # o download usa o filtro aplicado.
-
-        dados_download = (
-            df_filtrado
-            if menu == "📋  Registro e Dados"
-            else df
-        )
-
-        nome_lote_download = ""
-
-        if (
-            menu == "📋  Registro e Dados"
-            and lote_selecionado
-            != "Todos os lotes"
-        ):
-
-            nome_lote_download = (
-                f"_Lote_{lote_selecionado}"
-            )
 
         st.download_button(
             label="⬇️ Baixar Planilha",
-            data=gerar_xlsx(
-                dados_download
-            ),
+            data=gerar_xlsx(df_filtrado),
             file_name=(
                 f"AMIRA_Producao_"
                 f"{rotulo_aba(dia_atual).replace('/', '-')}"
-                f"{nome_lote_download}.xlsx"
+                f"{('_Lote_' + str(lote_atual)) if lote_atual != 'Todos os lotes' else ''}"
+                f".xlsx"
             ),
             mime=(
                 "application/vnd.openxmlformats-officedocument."
                 "spreadsheetml.sheet"
             ),
-            use_container_width=True
+            use_container_width=True,
+            key="download_amira"
         )
 
+
+st.markdown(
+    "</div>",
+    unsafe_allow_html=True
+)
 
 st.markdown(
     "<div class='hero-line'></div>",
@@ -1660,572 +1799,230 @@ st.markdown(
 
 
 # =========================================================
-# 1. TELA REGISTRO E DADOS
+# 1. REGISTRO E DADOS
 # =========================================================
 
 if menu == "📋  Registro e Dados":
 
-    st.markdown(
-        """
-<div class='section-title'>
-
-Dados do Dia
-
-</div>
-
-<div class='section-subtitle'>
-
-Filtre os registros por lote e acompanhe o peso produzido.
-
-</div>
-""",
-        unsafe_allow_html=True
-    )
-
-
-    # =====================================================
-    # FILTRO
-    # =====================================================
-
-    if not df.empty:
-
-        filtro_col1, filtro_col2 = st.columns(
-            [1.5, 2.5]
-        )
-
-        with filtro_col1:
-
-            df_filtrado, lote_selecionado = (
-                aplicar_filtro_lote(df)
-            )
-
-        with filtro_col2:
-
-            if lote_selecionado == "Todos os lotes":
-
-                st.markdown(
-                    """
-<div class='automation-note'>
-
-🔎 <b>Todos os lotes</b>
-
-<span>
-Exibindo todos os registros do dia.
-</span>
-
-</div>
-""",
-                    unsafe_allow_html=True
-                )
-
-            else:
-
-                peso_lote = (
-                    float(
-                        df_filtrado[
-                            "Peso (kg)"
-                        ].sum()
-                    )
-                    if not df_filtrado.empty
-                    else 0
-                )
-
-                st.markdown(
-                    f"""
-<div class='automation-note'>
-
-📦 <b>Lote {lote_selecionado}</b>
-
-<span>
-{len(df_filtrado)} pesagem(ns)
-•
-{formatar_numero(peso_lote)} kg
-</span>
-
-</div>
-""",
-                    unsafe_allow_html=True
-                )
-
-    else:
-
-        df_filtrado = df.copy()
-
-        lote_selecionado = (
-            "Todos os lotes"
-        )
-
-
-    # =====================================================
-    # MÉTRICAS
-    # =====================================================
-
-    mostrar_metricas(
-        df_filtrado
-    )
-
-    st.markdown(
-        "<br>",
-        unsafe_allow_html=True
-    )
-
-
-    # =====================================================
-    # TABELA + RESUMO
-    # =====================================================
-
-    left, right = st.columns(
-        [2.2, 1]
-    )
-
-
-    # =====================================================
-    # TABELA PRINCIPAL
-    # =====================================================
-
-    with left:
+    if (
+        lote_atual != "Todos os lotes"
+        and not df_filtrado.empty
+    ):
 
         st.markdown(
-            """
-<div class='panel-title'>
-
-📋 Registros de Produção
-
-</div>
-""",
+            f"""
+            <div class="lote-filter-info">
+                🔎 Filtro ativo:
+                <b>Lote {lote_atual}</b>
+                • Exibindo apenas as pesagens desse lote.
+            </div>
+            """,
             unsafe_allow_html=True
         )
 
-        if df_filtrado.empty:
+    elif not df.empty:
 
-            if df.empty:
+        st.markdown(
+            """
+            <div class="lote-filter-info">
+                🟢 <b>Todos os lotes</b>
+                • O sistema agrupou automaticamente
+                os registros iguais.
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
 
-                st.info(
-                    "Aguardando pesagens para exibir na tabela."
-                )
+    st.markdown(
+        """
+        <div class="section-title">
+            Dados do Dia
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-            else:
+    mostrar_metricas(df_filtrado)
 
-                st.warning(
-                    "Nenhuma pesagem encontrada para "
-                    f"o lote {lote_selecionado}."
-                )
+    st.markdown("<br>", unsafe_allow_html=True)
 
-        else:
 
-            tabela_exibicao = (
-                df_filtrado
-                .copy()
-                .reset_index(drop=True)
-            )
+    # =====================================================
+    # PRODUÇÃO POR LOTE
+    # =====================================================
 
-            tabela_exibicao.insert(
-                0,
-                "#",
-                tabela_exibicao.index + 1
-            )
+    mostrar_producao_por_lote(df_filtrado)
 
-            st.dataframe(
-                tabela_exibicao,
-                use_container_width=True,
-                hide_index=True,
-                column_config={
+    st.markdown("<br>", unsafe_allow_html=True)
 
-                    "#":
-                        st.column_config.NumberColumn(
-                            "#",
-                            width="small"
-                        ),
 
-                    "Peso (kg)":
-                        st.column_config.NumberColumn(
-                            "Peso (kg)",
-                            format="%.2f"
-                        ),
+    # =====================================================
+    # REGISTROS DE PRODUÇÃO
+    # =====================================================
 
-                    "Lote":
-                        st.column_config.TextColumn(
-                            "Lote"
-                        )
+    st.markdown(
+        """
+        <div class="section-title"
+             style="font-size:1.2rem;">
+            📋 Registros de Produção
+        </div>
 
-                }
-            )
+        <div class="section-subtitle">
+            Pesagens registradas no dia selecionado.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    if df_filtrado.empty:
+
+        st.info(
+            "Aguardando pesagens para exibir na tabela."
+        )
+
+    else:
+
+        tabela_exibicao = (
+            df_filtrado
+            .copy()
+            .reset_index(drop=True)
+        )
+
+        tabela_exibicao.insert(
+            0,
+            "#",
+            tabela_exibicao.index + 1
+        )
+
+        tabela_amira(
+            tabela_exibicao,
+            max_height=440
+        )
 
 
     # =====================================================
     # RESUMO
     # =====================================================
 
-    with right:
+    st.markdown("<br>", unsafe_allow_html=True)
 
-        peso_total, media, total_caixas = (
-            resumo_dia(
-                df_filtrado
-            )
-        )
+    peso_total, media, total_caixas = resumo_dia(
+        df_filtrado
+    )
 
-        titulo_resumo = (
-            "Resumo do Lote"
-            if lote_selecionado
-            != "Todos os lotes"
-            else "Resumo do Dia"
-        )
+    html_resumo = f"""
+    <div class="panel summary-panel">
+        <div class="panel-title">
+            Resumo do Dia
+        </div>
 
-        subtitulo_resumo = (
-            f"Lote {lote_selecionado}"
-            if lote_selecionado
-            != "Todos os lotes"
-            else "Indicadores principais"
-        )
+        <div class="panel-sub">
+            Indicadores principais
+        </div>
 
-        html_resumo = f"""
+        <div style="
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            padding:30px 0 25px;
+        ">
 
-<div class='panel summary-panel'>
+            <div style="
+                width:145px;
+                height:145px;
+                border-radius:50%;
+                background:conic-gradient(
+                    #3d8cff 85%,
+                    rgba(255,255,255,0.05) 85%
+                );
+                display:flex;
+                justify-content:center;
+                align-items:center;
+                box-shadow:0 0 20px rgba(61,140,255,0.15);
+            ">
 
-<div class='panel-title'>
+                <div style="
+                    width:125px;
+                    height:125px;
+                    border-radius:50%;
+                    background:#080c14;
+                    display:flex;
+                    flex-direction:column;
+                    justify-content:center;
+                    align-items:center;
+                    border:1px solid rgba(88,130,230,.15);
+                ">
 
-{titulo_resumo}
+                    <span style="
+                        font-family:'Orbitron',sans-serif;
+                        font-size:1.35rem;
+                        font-weight:800;
+                        color:#fff;
+                    ">
+                        {formatar_numero(peso_total)}
+                    </span>
 
-</div>
+                    <span style="
+                        font-size:0.75rem;
+                        color:#77849a;
+                        margin-top:2px;
+                    ">
+                        kg
+                    </span>
 
-<div class='panel-sub'>
+                </div>
+            </div>
+        </div>
 
-{subtitulo_resumo}
+        <div class="summary-row">
+            <span>📦 Caixas passadas</span>
+            <b>{total_caixas}</b>
+        </div>
 
-</div>
+        <div class="summary-row">
+            <span>↗️ Média por caixa</span>
+            <b>{formatar_numero(media)} kg</b>
+        </div>
 
-
-<div style='display:flex;
-justify-content:center;
-align-items:center;
-padding:30px 0 25px;'>
-
-<div style='width:145px;
-height:145px;
-border-radius:50%;
-background:conic-gradient(
-#3d8cff 85%,
-rgba(255,255,255,0.05) 85%
-);
-display:flex;
-justify-content:center;
-align-items:center;
-box-shadow:0 0 20px rgba(61,140,255,0.15);'>
-
-<div style='width:125px;
-height:125px;
-border-radius:50%;
-background:#080c14;
-display:flex;
-flex-direction:column;
-justify-content:center;
-align-items:center;
-border:1px solid rgba(88,130,230,.15);'>
-
-<span style="font-family:'Orbitron',sans-serif;
-font-size:1.35rem;
-font-weight:800;
-color:#fff;">
-
-{formatar_numero(peso_total)}
-
-</span>
-
-<span style="font-size:0.75rem;
-color:#77849a;
-margin-top:2px;">
-
-kg
-
-</span>
-
-</div>
-</div>
-</div>
-
-
-<div class='summary-row'>
-
-<span>
-📦 Caixas passadas
-</span>
-
-<b style='color:#fff;'>
-
-{total_caixas}
-
-</b>
-
-</div>
-
-
-<div class='summary-row'>
-
-<span>
-↗️ Média por caixa
-</span>
-
-<b style='color:#fff;'>
-
-{formatar_numero(media)} kg
-
-</b>
-
-</div>
-
-
-<div class='summary-row'>
-
-<span>
-⚖ Peso total acumulado
-</span>
-
-<b style='color:#fff;'>
-
-{formatar_numero(peso_total)} kg
-
-</b>
-
-</div>
-
-
-</div>
-
-"""
-
-        st.markdown(
-            html_resumo,
-            unsafe_allow_html=True
-        )
-
-
-    # =====================================================
-    # RESUMO POR LOTE
-    # =====================================================
+        <div class="summary-row">
+            <span>⚖ Peso total acumulado</span>
+            <b>{formatar_numero(peso_total)} kg</b>
+        </div>
+    </div>
+    """
 
     st.markdown(
-        "<br><br>",
+        html_resumo,
         unsafe_allow_html=True
     )
+
+
+    # =====================================================
+    # DESEMPENHO
+    # =====================================================
 
     st.markdown(
         """
-<div class='section-title'
-style='font-size:1.2rem;'>
-
-📦 Produção por Lote
-
-</div>
-
-<div class='section-subtitle'>
-
-O sistema agrupa automaticamente todas as pesagens
-que possuem o mesmo lote.
-
-</div>
-""",
-        unsafe_allow_html=True
-    )
-
-
-    resumo_lotes = resumo_por_lote(
-        df
-    )
-
-
-    if resumo_lotes.empty:
-
-        st.info(
-            "Nenhum lote identificado nos registros deste dia."
-        )
-
-    else:
-
-        tabela_lotes = (
-            resumo_lotes
-            .copy()
-        )
-
-        # Formata os números
-        tabela_lotes["Peso total (kg)"] = (
-            tabela_lotes["Peso total (kg)"]
-            .round(2)
-        )
-
-        tabela_lotes["Média (kg)"] = (
-            tabela_lotes["Média (kg)"]
-            .round(2)
-        )
-
-        st.dataframe(
-            tabela_lotes,
-            use_container_width=True,
-            hide_index=True,
-            column_config={
-
-                "Lote":
-                    st.column_config.TextColumn(
-                        "Lote"
-                    ),
-
-                "Pesagens":
-                    st.column_config.NumberColumn(
-                        "Pesagens",
-                        format="%d"
-                    ),
-
-                "Peso total (kg)":
-                    st.column_config.NumberColumn(
-                        "Peso total (kg)",
-                        format="%.2f"
-                    ),
-
-                "Média (kg)":
-                    st.column_config.NumberColumn(
-                        "Média (kg)",
-                        format="%.2f"
-                    )
-
-            }
-        )
-
-
-        # =================================================
-        # GRÁFICO POR LOTE
-        # =================================================
-
-        st.markdown(
-            "<br>",
-            unsafe_allow_html=True
-        )
-
-        gl1, gl2 = st.columns(
-            [2, 1]
-        )
-
-
-        with gl1:
-
-            st.markdown(
-                """
-<div class='panel-title'>
-
-⚖ Peso total por lote
-
-</div>
-""",
-                unsafe_allow_html=True
-            )
-
-            fig_lotes = px.bar(
-                resumo_lotes,
-                x="Lote",
-                y="Peso total (kg)",
-                text="Peso total (kg)"
-            )
-
-            fig_lotes.update_traces(
-                marker_color="#2f80ff",
-                texttemplate="%{text:.2f} kg",
-                textposition="outside"
-            )
-
-            fig_lotes.update_layout(
-                yaxis_title="Peso total (kg)",
-                xaxis_title="Lote"
-            )
-
-            st.plotly_chart(
-                grafico_layout(
-                    fig_lotes,
-                    height=340
-                ),
-                use_container_width=True,
-                config={
-                    "displayModeBar": False
-                }
-            )
-
-
-        with gl2:
-
-            st.markdown(
-                """
-<div class='panel-title'>
-
-📦 Pesagens por lote
-
-</div>
-""",
-                unsafe_allow_html=True
-            )
-
-            fig_qtd = px.bar(
-                resumo_lotes,
-                x="Lote",
-                y="Pesagens",
-                text="Pesagens"
-            )
-
-            fig_qtd.update_traces(
-                marker_color="#8a35ff",
-                textposition="outside"
-            )
-
-            fig_qtd.update_layout(
-                yaxis_title="Quantidade",
-                xaxis_title="Lote"
-            )
-
-            st.plotly_chart(
-                grafico_layout(
-                    fig_qtd,
-                    height=340
-                ),
-                use_container_width=True,
-                config={
-                    "displayModeBar": False
-                }
-            )
-
-
-    # =====================================================
-    # DESEMPENHO DO DIA
-    # =====================================================
-
-    st.markdown(
-        "<br><br>"
-        "<div class='section-title' "
-        "style='font-size:1.2rem;'>"
-        "Desempenho do Dia"
-        "</div>",
+        <br><br>
+        <div class="section-title"
+             style="font-size:1.2rem;">
+            Desempenho do Dia
+        </div>
+        """,
         unsafe_allow_html=True
     )
 
     g1, g2 = st.columns(2)
 
 
-    # =====================================================
-    # GRÁFICO PESO
-    # =====================================================
-
     with g1:
 
-        titulo_grafico = (
-            "Peso do lote ao longo dos registros"
-            if lote_selecionado
-            != "Todos os lotes"
-            else "Peso ao longo do dia"
-        )
-
         st.markdown(
-            f"""
-<div class='panel-title'>
-
-{titulo_grafico}
-
-</div>
-""",
+            """
+            <div class="panel-title">
+                Peso ao longo do dia
+            </div>
+            """,
             unsafe_allow_html=True
         )
 
@@ -2261,27 +2058,14 @@ que possuem o mesmo lote.
             )
 
 
-    # =====================================================
-    # HISTOGRAMA
-    # =====================================================
-
     with g2:
 
-        titulo_hist = (
-            "Distribuição dos pesos do lote"
-            if lote_selecionado
-            != "Todos os lotes"
-            else "Distribuição dos pesos"
-        )
-
         st.markdown(
-            f"""
-<div class='panel-title'>
-
-{titulo_hist}
-
-</div>
-""",
+            """
+            <div class="panel-title">
+                Distribuição dos pesos
+            </div>
+            """,
             unsafe_allow_html=True
         )
 
@@ -2313,7 +2097,7 @@ que possuem o mesmo lote.
 
 
 # =========================================================
-# 2. TELA GRÁFICOS E ANÁLISES
+# 2. GRÁFICOS E ANÁLISES
 # =========================================================
 
 elif menu == "📊  Gráficos e Análises":
@@ -2328,19 +2112,15 @@ elif menu == "📊  Gráficos e Análises":
 
         st.markdown(
             """
-<div class='panel-title'
-style='font-size:1.15rem;color:#00d2ff;'>
+            <div class="panel-title"
+                 style="font-size:1.15rem;color:#00d2ff;">
+                Comparativo Diário
+            </div>
 
-Comparativo Diário
-
-</div>
-
-<div class='section-subtitle'>
-
-Produção dia a dia
-
-</div>
-""",
+            <div class="section-subtitle">
+                Produção dia a dia
+            </div>
+            """,
             unsafe_allow_html=True
         )
 
@@ -2351,20 +2131,14 @@ Produção dia a dia
             if not temp.empty:
 
                 resumo.append({
-
-                    "Data": nome,
-
+                    "Data": rotulo_aba(nome),
                     "Peso total (kg)": temp[
                         "Peso (kg)"
                     ].sum(),
-
                     "Caixas": len(temp)
-
                 })
 
-        rdf = pd.DataFrame(
-            resumo
-        )
+        rdf = pd.DataFrame(resumo)
 
         if not rdf.empty:
 
@@ -2374,12 +2148,10 @@ Produção dia a dia
 
                 st.markdown(
                     """
-<div class='panel-title'>
-
-Peso Diário (kg)
-
-</div>
-""",
+                    <div class="panel-title">
+                        Peso Diário (kg)
+                    </div>
+                    """,
                     unsafe_allow_html=True
                 )
 
@@ -2405,12 +2177,10 @@ Peso Diário (kg)
 
                 st.markdown(
                     """
-<div class='panel-title'>
-
-Caixas por Dia
-
-</div>
-""",
+                    <div class="panel-title">
+                        Caixas por Dia
+                    </div>
+                    """,
                     unsafe_allow_html=True
                 )
 
@@ -2439,22 +2209,17 @@ Caixas por Dia
 
         st.markdown(
             """
-<br>
+            <br>
+            <div class="panel-title"
+                 style="font-size:1.15rem;color:#00d2ff;">
+                Análise de Longo Prazo (Mensal)
+            </div>
 
-<div class='panel-title'
-style='font-size:1.15rem;color:#00d2ff;'>
-
-Análise de Longo Prazo (Mensal)
-
-</div>
-
-<div class='section-subtitle'>
-
-Comparativo histórico agrupado por mês e ano
-para controle gerencial.
-
-</div>
-""",
+            <div class="section-subtitle">
+                Comparativo histórico agrupado por mês e ano
+                para controle gerencial.
+            </div>
+            """,
             unsafe_allow_html=True
         )
 
@@ -2464,31 +2229,18 @@ para controle gerencial.
 
             if not temp.empty:
 
-                dt = data_da_aba(
-                    nome
-                )
+                dt = data_da_aba(nome)
 
                 if dt:
 
                     long_term_data.append({
-
-                        "Ano": str(
-                            dt.year
-                        ),
-
+                        "Ano": str(dt.year),
                         "Mês_Num": dt.month,
-
-                        "Mês/Ano": (
-                            f"{dt.month:02d}/"
-                            f"{dt.year}"
-                        ),
-
+                        "Mês/Ano": f"{dt.month:02d}/{dt.year}",
                         "Peso total (kg)": temp[
                             "Peso (kg)"
                         ].sum(),
-
                         "Caixas": len(temp)
-
                     })
 
         if long_term_data:
@@ -2522,12 +2274,10 @@ para controle gerencial.
 
                 st.markdown(
                     """
-<div class='panel-title'>
-
-Produção Mensal Acumulada (kg)
-
-</div>
-""",
+                    <div class="panel-title">
+                        Produção Mensal Acumulada (kg)
+                    </div>
+                    """,
                     unsafe_allow_html=True
                 )
 
@@ -2544,9 +2294,7 @@ Produção Mensal Acumulada (kg)
                 )
 
                 st.plotly_chart(
-                    grafico_layout(
-                        fig_lt1
-                    ),
+                    grafico_layout(fig_lt1),
                     use_container_width=True,
                     config={
                         "displayModeBar": False
@@ -2557,12 +2305,10 @@ Produção Mensal Acumulada (kg)
 
                 st.markdown(
                     """
-<div class='panel-title'>
-
-Volume Mensal (Qtd. Caixas)
-
-</div>
-""",
+                    <div class="panel-title">
+                        Volume Mensal (Qtd. Caixas)
+                    </div>
+                    """,
                     unsafe_allow_html=True
                 )
 
@@ -2581,15 +2327,11 @@ Volume Mensal (Qtd. Caixas)
 
                 fig_lt2.update_traces(
                     line_width=3,
-                    marker=dict(
-                        size=8
-                    )
+                    marker=dict(size=8)
                 )
 
                 st.plotly_chart(
-                    grafico_layout(
-                        fig_lt2
-                    ),
+                    grafico_layout(fig_lt2),
                     use_container_width=True,
                     config={
                         "displayModeBar": False
@@ -2635,9 +2377,7 @@ else:
                 vazio()
             )
 
-            rotulo = rotulo_aba(
-                nome
-            )
+            rotulo = rotulo_aba(nome)
 
             esta_lancada = (
                 nome
@@ -2693,8 +2433,7 @@ else:
                 if temp.empty:
 
                     st.info(
-                        "A planilha existe, mas ainda não "
-                        "possui registros."
+                        "A planilha existe, mas ainda não possui registros."
                     )
 
                 else:
@@ -2711,26 +2450,54 @@ else:
                         tabela_historico.index + 1
                     )
 
-                    st.dataframe(
+                    tabela_amira(
                         tabela_historico,
-                        use_container_width=True,
-                        hide_index=True,
-                        column_config={
-
-                            "#":
-                                st.column_config.NumberColumn(
-                                    "#",
-                                    width="small"
-                                ),
-
-                            "Peso (kg)":
-                                st.column_config.NumberColumn(
-                                    "Peso (kg)",
-                                    format="%.2f"
-                                )
-
-                        }
+                        max_height=430
                     )
+
+                    # Resumo dos lotes da planilha histórica
+                    agrupado_historico = agrupar_por_lote(
+                        temp
+                    )
+
+                    if not agrupado_historico.empty:
+
+                        st.markdown(
+                            """
+                            <div class="panel-title"
+                                 style="margin-top:18px;">
+                                📦 Resumo por lote
+                            </div>
+                            """,
+                            unsafe_allow_html=True
+                        )
+
+                        resumo_historico = (
+                            agrupado_historico.copy()
+                        )
+
+                        resumo_historico[
+                            "Peso total (kg)"
+                        ] = (
+                            resumo_historico[
+                                "Peso total (kg)"
+                            ]
+                            .map(formatar_numero)
+                        )
+
+                        resumo_historico[
+                            "Média (kg)"
+                        ] = (
+                            resumo_historico[
+                                "Média (kg)"
+                            ]
+                            .map(formatar_numero)
+                        )
+
+                        tabela_amira(
+                            resumo_historico,
+                            max_height=300
+                        )
 
 
 # =========================================================
@@ -2739,12 +2506,9 @@ else:
 
 st.markdown(
     """
-<div class='footer'>
-
-AMIRA • Sistema de Monitoramento e Registro
-de Produção • SENAI
-
-</div>
-""",
+    <div class="footer">
+        AMIRA • Sistema de Monitoramento e Registro de Produção • SENAI
+    </div>
+    """,
     unsafe_allow_html=True
 )
