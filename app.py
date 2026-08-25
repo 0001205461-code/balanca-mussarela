@@ -34,39 +34,47 @@ st.markdown("""
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Orbitron:wght@600;700;800&display=swap');
 
 :root{
- --bg:#05070d;
- --panel:#0b0f1a;
- --blue:#2f80ff;
- --cyan:#00d2ff;
- --purple:#8a35ff;
- --green:#20e889;
- --text:#f4f7ff;
- --muted:#8f9bb2;
+    --bg:#05070d;
+    --panel:#0b0f1a;
+    --blue:#2f80ff;
+    --cyan:#00d2ff;
+    --purple:#8a35ff;
+    --green:#20e889;
+    --text:#f4f7ff;
+    --muted:#8f9bb2;
 }
 
 html,body,[class*="css"]{
- font-family:Inter,sans-serif;
+    font-family:Inter,sans-serif;
 }
 
 .stApp{
- background:
- radial-gradient(circle at 68% 12%,rgba(54,83,180,.13),transparent 28%),
- radial-gradient(circle at 96% 76%,rgba(138,53,255,.12),transparent 31%),
- var(--bg);
- color:var(--text);
+    background:
+    radial-gradient(
+        circle at 68% 12%,
+        rgba(54,83,180,.13),
+        transparent 28%
+    ),
+    radial-gradient(
+        circle at 96% 76%,
+        rgba(138,53,255,.12),
+        transparent 31%
+    ),
+    var(--bg);
+    color:var(--text);
 }
 
 header[data-testid="stHeader"]{
- background:transparent!important;
+    background:transparent!important;
 }
 
 [data-testid="stDecoration"]{
- display:none!important;
+    display:none!important;
 }
 
 .block-container{
- padding:1.2rem 1.6rem 2rem;
- max-width:1700px;
+    padding:1.2rem 1.6rem 2rem;
+    max-width:1700px;
 }
 
 
@@ -75,29 +83,39 @@ header[data-testid="stHeader"]{
    ========================================================= */
 
 section[data-testid="stSidebar"]{
- background:linear-gradient(180deg,#070a12,#080b14)!important;
- border-right:1px solid rgba(76,122,255,.18);
+    background:linear-gradient(
+        180deg,
+        #070a12,
+        #080b14
+    )!important;
+
+    border-right:1px solid rgba(76,122,255,.18);
 }
 
 section[data-testid="stSidebar"] .stButton{
- width:100%;
- margin-bottom:8px;
+    width:100%;
+    margin-bottom:8px;
 }
 
 section[data-testid="stSidebar"] .stButton button{
- width:100%;
- min-height:52px;
- border-radius:10px!important;
- background:#0d1422!important;
- color:#dce6fa!important;
- border:1px solid rgba(76,122,255,.25)!important;
- text-align:left!important;
- font-weight:700;
+    width:100%;
+    min-height:52px;
+    border-radius:10px!important;
+    background:#0d1422!important;
+    color:#dce6fa!important;
+    border:1px solid rgba(76,122,255,.25)!important;
+    text-align:left!important;
+    font-weight:700;
 }
 
 section[data-testid="stSidebar"] .stButton button[kind="primary"]{
- background:linear-gradient(90deg,#1574ff,#7031eb)!important;
- color:#fff!important;
+    background:linear-gradient(
+        90deg,
+        #1574ff,
+        #7031eb
+    )!important;
+
+    color:#fff!important;
 }
 
 
@@ -106,21 +124,21 @@ section[data-testid="stSidebar"] .stButton button[kind="primary"]{
    ========================================================= */
 
 .brand{
- text-align:center;
- font-family:Orbitron;
- font-size:1.1rem;
- font-weight:800;
+    text-align:center;
+    font-family:Orbitron;
+    font-size:1.1rem;
+    font-weight:800;
 }
 
 .brand span,
 .top-title span{
- color:var(--cyan);
+    color:var(--cyan);
 }
 
 .caption{
- text-align:center;
- color:var(--muted);
- font-size:.75rem;
+    text-align:center;
+    color:var(--muted);
+    font-size:.75rem;
 }
 
 
@@ -129,25 +147,25 @@ section[data-testid="stSidebar"] .stButton button[kind="primary"]{
    ========================================================= */
 
 .top-title{
- font-size:2.35rem;
- font-weight:800;
+    font-size:2.35rem;
+    font-weight:800;
 }
 
 .subtitle{
- color:#a0aabd;
- font-size:1rem;
- margin-top:4px;
+    color:#a0aabd;
+    font-size:1rem;
+    margin-top:4px;
 }
 
 .line{
- height:1px;
- background:linear-gradient(
-  90deg,
-  #3c78ff,
-  #823cff,
-  transparent
- );
- margin:20px 0;
+    height:1px;
+    background:linear-gradient(
+        90deg,
+        #3c78ff,
+        #823cff,
+        transparent
+    );
+    margin:20px 0;
 }
 
 
@@ -157,38 +175,34 @@ section[data-testid="stSidebar"] .stButton button[kind="primary"]{
 
 .stButton button,
 .stDownloadButton button{
- border-radius:10px!important;
- border:1px solid rgba(68,137,255,.55)!important;
- background:linear-gradient(
-  100deg,
-  #0876df,
-  #5631d6
- )!important;
- color:#fff!important;
- font-weight:700;
- min-height:42px;
- transition:.2s;
+    border-radius:10px!important;
+    border:1px solid rgba(68,137,255,.55)!important;
+
+    background:linear-gradient(
+        100deg,
+        #0876df,
+        #5631d6
+    )!important;
+
+    color:#fff!important;
+    font-weight:700;
+    min-height:42px;
+
+    transition:.2s;
 }
 
 .stButton button:hover,
 .stDownloadButton button:hover{
- transform:translateY(-2px);
+    transform:translateY(-2px);
 }
 
-
-/*
- Espaço utilizado para colocar os botões exatamente
- na altura dos campos de seleção.
-*/
 .filtro-botao{
- height:28px;
- width:100%;
+    height:28px;
+    width:100%;
 }
 
-
-/* Remove espaçamentos extras do botão de download */
 div[data-testid="stDownloadButton"]{
- margin-top:0!important;
+    margin-top:0!important;
 }
 
 
@@ -196,18 +210,18 @@ div[data-testid="stDownloadButton"]{
    SELECTBOX
    ========================================================= */
 
-div[data-baseweb="select"]>div{
- background:#0c111e!important;
- border-color:rgba(76,122,255,.3)!important;
+div[data-baseweb="select"] > div{
+    background:#0c111e!important;
+    border-color:rgba(76,122,255,.3)!important;
 }
 
 div[data-baseweb="select"] span{
- color:#e8efff!important;
+    color:#e8efff!important;
 }
 
 .stSelectbox label{
- color:#8cdfff!important;
- font-weight:700!important;
+    color:#8cdfff!important;
+    font-weight:700!important;
 }
 
 
@@ -215,35 +229,40 @@ div[data-baseweb="select"] span{
    CARDS
    ========================================================= */
 
-.card{
- padding:18px;
- border-radius:15px;
- border:1px solid rgba(87,125,210,.22);
- background:linear-gradient(
-  145deg,
-  #0e1320,
-  #070b14
- );
- min-height:110px;
+.metric-card{
+    padding:18px;
+    border-radius:15px;
+
+    border:1px solid rgba(87,125,210,.22);
+
+    background:linear-gradient(
+        145deg,
+        #0e1320,
+        #070b14
+    );
+
+    min-height:110px;
+    box-sizing:border-box;
 }
 
-.card-label{
- color:#9ca8bc;
- font-size:.78rem;
- font-weight:700;
+.metric-label{
+    color:#9ca8bc;
+    font-size:.78rem;
+    font-weight:700;
 }
 
-.card-value{
- font-family:Orbitron;
- font-size:1.55rem;
- font-weight:700;
- margin-top:8px;
+.metric-value{
+    font-family:Orbitron;
+    font-size:1.55rem;
+    font-weight:700;
+    margin-top:8px;
+    color:#f4f7ff;
 }
 
-.card-foot{
- color:#718097;
- font-size:.7rem;
- margin-top:5px;
+.metric-foot{
+    color:#718097;
+    font-size:.7rem;
+    margin-top:5px;
 }
 
 
@@ -252,25 +271,27 @@ div[data-baseweb="select"] span{
    ========================================================= */
 
 .panel{
- border:1px solid rgba(88,130,230,.2);
- background:linear-gradient(
-  145deg,
-  #0b101c,
-  #060a12
- );
- border-radius:15px;
- padding:16px;
+    border:1px solid rgba(88,130,230,.2);
+
+    background:linear-gradient(
+        145deg,
+        #0b101c,
+        #060a12
+    );
+
+    border-radius:15px;
+    padding:16px;
 }
 
 .panel-title{
- font-size:1rem;
- font-weight:800;
- margin-bottom:5px;
+    font-size:1rem;
+    font-weight:800;
+    margin-bottom:5px;
 }
 
 .panel-sub{
- color:#77849a;
- font-size:.75rem;
+    color:#77849a;
+    font-size:.75rem;
 }
 
 
@@ -279,14 +300,14 @@ div[data-baseweb="select"] span{
    ========================================================= */
 
 .section-title{
- font-size:1.2rem;
- font-weight:800;
- margin:8px 0;
+    font-size:1.2rem;
+    font-weight:800;
+    margin:8px 0;
 }
 
 .section-sub{
- color:#7d8ba2;
- font-size:.78rem;
+    color:#7d8ba2;
+    font-size:.78rem;
 }
 
 
@@ -295,50 +316,59 @@ div[data-baseweb="select"] span{
    ========================================================= */
 
 .table-wrap{
- width:100%;
- max-height:500px;
- overflow:auto;
- border:1px solid rgba(76,122,255,.25);
- border-radius:12px;
- background:#08101c;
+    width:100%;
+    max-height:500px;
+    overflow:auto;
+
+    border:1px solid rgba(76,122,255,.25);
+
+    border-radius:12px;
+    background:#08101c;
 }
 
 .amira-table{
- width:100%;
- border-collapse:collapse;
- color:#e9f1ff;
- font-size:.82rem;
+    width:100%;
+    border-collapse:collapse;
+    color:#e9f1ff;
+    font-size:.82rem;
 }
 
 .amira-table th{
- position:sticky;
- top:0;
- z-index:2;
- padding:11px;
- text-align:left;
- color:#fff;
- background:#101b2d;
- border-bottom:1px solid #3564a5;
- white-space:nowrap;
+    position:sticky;
+    top:0;
+    z-index:2;
+
+    padding:11px;
+    text-align:left;
+
+    color:#fff;
+    background:#101b2d;
+
+    border-bottom:1px solid #3564a5;
+
+    white-space:nowrap;
 }
 
 .amira-table td{
- padding:9px 11px;
- border-bottom:1px solid rgba(76,122,255,.12);
- background:#0a1422;
- white-space:nowrap;
+    padding:9px 11px;
+
+    border-bottom:1px solid rgba(76,122,255,.12);
+
+    background:#0a1422;
+
+    white-space:nowrap;
 }
 
 .amira-table tr:nth-child(even) td{
- background:#0c1727;
+    background:#0c1727;
 }
 
 .amira-table tr:hover td{
- background:#10223a;
+    background:#10223a;
 }
 
 .num{
- text-align:right;
+    text-align:right;
 }
 
 
@@ -347,17 +377,22 @@ div[data-baseweb="select"] span{
    ========================================================= */
 
 .filter{
- margin:10px 0;
- padding:11px 14px;
- border-radius:10px;
- border:1px solid rgba(32,232,137,.35);
- background:rgba(8,61,42,.45);
- color:#bfe9d3;
- font-size:.78rem;
+    margin:10px 0;
+    padding:11px 14px;
+
+    border-radius:10px;
+
+    border:1px solid rgba(32,232,137,.35);
+
+    background:rgba(8,61,42,.45);
+
+    color:#bfe9d3;
+
+    font-size:.78rem;
 }
 
 .filter b{
- color:#37ef9b;
+    color:#37ef9b;
 }
 
 
@@ -366,10 +401,10 @@ div[data-baseweb="select"] span{
    ========================================================= */
 
 .footer{
- text-align:center;
- color:#59677d;
- font-size:.68rem;
- padding:20px 0;
+    text-align:center;
+    color:#59677d;
+    font-size:.68rem;
+    padding:20px 0;
 }
 
 </style>
@@ -693,19 +728,20 @@ def tabela(df, altura=500):
     <div class="table-wrap"
          style="max-height:{altura}px">
 
-    <table class="amira-table">
+        <table class="amira-table">
 
-    <thead>
-    <tr>
+            <thead>
+                <tr>
     """
 
     for c in df.columns:
         h += f"<th>{c}</th>"
 
     h += """
-    </tr>
-    </thead>
-    <tbody>
+                </tr>
+            </thead>
+
+            <tbody>
     """
 
     for _, row in df.iterrows():
@@ -735,8 +771,8 @@ def tabela(df, altura=500):
         h += "</tr>"
 
     h += """
-    </tbody>
-    </table>
+            </tbody>
+        </table>
     </div>
     """
 
@@ -752,16 +788,19 @@ def layout(fig, altura=300):
         template="plotly_dark",
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
+
         font=dict(
             color="#aeb9cb",
             family="Inter"
         ),
+
         margin=dict(
             l=10,
             r=10,
             t=20,
             b=10
         ),
+
         height=altura,
         showlegend=False
     )
@@ -805,6 +844,10 @@ def agrupar_lote(df):
     ).reset_index()
 
 
+# =========================================================
+# MÉTRICAS
+# =========================================================
+
 def metricas(df):
 
     caixas = len(df)
@@ -812,28 +855,30 @@ def metricas(df):
     peso = (
         float(df["Peso (kg)"].sum())
         if not df.empty
-        else 0
+        else 0.0
     )
 
     media = (
         float(df["Peso (kg)"].mean())
         if not df.empty
-        else 0
+        else 0.0
     )
 
-    dados = [
+    cards = [
         (
             "📦",
             "Caixas Passadas",
-            caixas,
+            f"{caixas}",
             "Registros filtrados"
         ),
+
         (
             "⚖",
             "Peso Total",
             f"{numero(peso)} kg",
             "Peso acumulado"
         ),
+
         (
             "◈",
             "Média por Caixa",
@@ -844,37 +889,40 @@ def metricas(df):
 
     cols = st.columns(3)
 
-    for col, (
-        ico,
-        nome,
-        valor,
-        rodape
-    ) in zip(cols, dados):
+    for col, (icone, titulo, valor, rodape) in zip(
+        cols,
+        cards
+    ):
 
         with col:
 
-            st.markdown(
+            # st.html evita que o HTML apareça
+            # como texto na tela.
+            st.html(
                 f"""
-                <div class="card">
-                    <div class="card-label">
-                        {ico} &nbsp; {nome}
+                <div class="metric-card">
+
+                    <div class="metric-label">
+                        {icone}
+                        &nbsp;
+                        {titulo}
                     </div>
 
-                    <div class="card-value">
+                    <div class="metric-value">
                         {valor}
                     </div>
 
-                    <div class="card-foot">
+                    <div class="metric-foot">
                         {rodape}
                     </div>
+
                 </div>
-                """,
-                unsafe_allow_html=True
+                """
             )
 
 
 # =========================================================
-# EXPORTAÇÃO EXCEL
+# EXCEL
 # =========================================================
 
 def xlsx(df):
@@ -887,7 +935,6 @@ def xlsx(df):
     wb = Workbook()
 
     ws = wb.active
-
     ws.title = "Registros"
 
     ws.append(
@@ -917,9 +964,7 @@ def xlsx(df):
 
     ws.freeze_panes = "A2"
 
-    ws.auto_filter.ref = (
-        ws.dimensions
-    )
+    ws.auto_filter.ref = ws.dimensions
 
     wb.save(b)
 
@@ -1060,7 +1105,7 @@ st.markdown(
 
 
 # =========================================================
-# FILTROS E AÇÕES
+# FILTROS
 # =========================================================
 
 dia = st.session_state.get(
@@ -1089,18 +1134,23 @@ with c1:
         novo_dia = st.selectbox(
             "📅 Dia de Produção",
             abas,
+
             index=(
                 abas.index(dia)
                 if dia in abas
                 else 0
             ),
+
             format_func=rotulo
         )
 
         if novo_dia != dia:
 
             st.session_state.dia = novo_dia
-            st.session_state.lote = "Todos os lotes"
+
+            st.session_state.lote = (
+                "Todos os lotes"
+            )
 
             st.rerun()
 
@@ -1108,18 +1158,21 @@ with c1:
 
 
 # =========================================================
-# DATA SELECIONADA
+# DATA
 # =========================================================
 
 df = (
-    dados.get(dia, vazio())
+    dados.get(
+        dia,
+        vazio()
+    )
     if dia
     else vazio()
 )
 
 
 # =========================================================
-# FILTRAR POR LOTE
+# FILTRO POR LOTE
 # =========================================================
 
 with c2:
@@ -1128,10 +1181,14 @@ with c2:
 
         lotes = sorted(
             df["Lote"].map(lote).unique(),
+
             key=lambda x: (
                 (0, int(x))
                 if str(x).isdigit()
-                else (1, str(x).lower())
+                else (
+                    1,
+                    str(x).lower()
+                )
             )
         )
 
@@ -1140,11 +1197,15 @@ with c2:
         ] + list(lotes)
 
         if lote_atual not in opcoes:
-            lote_atual = "Todos os lotes"
+
+            lote_atual = (
+                "Todos os lotes"
+            )
 
         novo_lote = st.selectbox(
             "🔎 Filtrar por lote",
             opcoes,
+
             index=opcoes.index(
                 lote_atual
             )
@@ -1152,22 +1213,28 @@ with c2:
 
         if novo_lote != lote_atual:
 
-            st.session_state.lote = novo_lote
+            st.session_state.lote = (
+                novo_lote
+            )
+
             st.rerun()
 
         lote_atual = novo_lote
 
 
 # =========================================================
-# APLICA FILTRO
+# FILTRO
 # =========================================================
 
 df_filtro = (
+
     df[
         df["Lote"].map(lote)
         == lote_atual
     ].copy()
+
     if lote_atual != "Todos os lotes"
+
     else df.copy()
 )
 
@@ -1202,7 +1269,10 @@ with c3:
 
 with c4:
 
-    if menu == menus[0] and not df_filtro.empty:
+    if (
+        menu == menus[0]
+        and not df_filtro.empty
+    ):
 
         st.markdown(
             '<div class="filtro-botao"></div>',
@@ -1211,17 +1281,24 @@ with c4:
 
         st.download_button(
             "⬇️ Baixar planilha",
-            data=xlsx(df_filtro),
+
+            data=xlsx(
+                df_filtro
+            ),
+
             file_name=(
                 f"AMIRA_"
                 f"{rotulo(dia).replace('/', '-')}"
                 f".xlsx"
             ),
+
             mime=(
                 "application/vnd.openxmlformats-"
                 "officedocument.spreadsheetml.sheet"
             ),
+
             key="btn_baixar",
+
             use_container_width=True
         )
 
@@ -1255,9 +1332,11 @@ if menu == menus[0]:
         '<div class="section-title">'
         '📦 Produção por Lote'
         '</div>'
+
         '<div class="section-sub">'
         'Agrupamento automático das pesagens.'
         '</div>',
+
         unsafe_allow_html=True
     )
 
@@ -1309,16 +1388,18 @@ if menu == menus[0]:
 
 
     # =====================================================
-    # REGISTROS
+    # TABELA DE REGISTROS
     # =====================================================
 
     st.markdown(
         '<div class="section-title">'
         '📋 Registros de Produção'
         '</div>'
+
         '<div class="section-sub">'
         'Pesagens do dia selecionado.'
         '</div>',
+
         unsafe_allow_html=True
     )
 
@@ -1358,6 +1439,7 @@ if menu == menus[0]:
         '<div class="section-title">'
         '📈 Desempenho do Dia'
         '</div>',
+
         unsafe_allow_html=True
     )
 
@@ -1440,19 +1522,24 @@ elif menu == menus[1]:
             resumo.append(
                 {
                     "Data": rotulo(nome),
+
                     "Peso total (kg)": (
                         temp["Peso (kg)"].sum()
                     ),
+
                     "Caixas": len(temp)
                 }
             )
 
-    rdf = pd.DataFrame(resumo)
+    rdf = pd.DataFrame(
+        resumo
+    )
 
     if rdf.empty:
 
         st.info(
-            "Aguardando dados para gerar os gráficos."
+            "Aguardando dados para "
+            "gerar os gráficos."
         )
 
     else:
@@ -1461,6 +1548,7 @@ elif menu == menus[1]:
             '<div class="section-title">'
             '📊 Comparativo Diário'
             '</div>',
+
             unsafe_allow_html=True
         )
 
@@ -1508,7 +1596,7 @@ elif menu == menus[1]:
 
 
         # =================================================
-        # ANÁLISE MENSAL
+        # MENSAL
         # =================================================
 
         mensal = []
@@ -1522,11 +1610,17 @@ elif menu == menus[1]:
                 mensal.append(
                     {
                         "Ano": d.year,
-                        "Mês": d.strftime("%m/%Y"),
+
+                        "Mês": d.strftime(
+                            "%m/%Y"
+                        ),
+
                         "Mês_Num": d.month,
+
                         "Peso": (
                             temp["Peso (kg)"].sum()
                         ),
+
                         "Caixas": len(temp)
                     }
                 )
@@ -1544,11 +1638,17 @@ elif menu == menus[1]:
                         "Mês",
                         "Mês_Num"
                     ]
-                )[["Peso", "Caixas"]]
+                )[[
+                    "Peso",
+                    "Caixas"
+                ]]
                 .sum()
                 .reset_index()
                 .sort_values(
-                    ["Ano", "Mês_Num"]
+                    [
+                        "Ano",
+                        "Mês_Num"
+                    ]
                 )
             )
 
@@ -1557,6 +1657,7 @@ elif menu == menus[1]:
                 '<div class="section-title">'
                 '📅 Análise Mensal'
                 '</div>',
+
                 unsafe_allow_html=True
             )
 
@@ -1569,6 +1670,7 @@ elif menu == menus[1]:
                     x="Mês",
                     y="Peso",
                     color="Ano",
+
                     color_discrete_sequence=[
                         "#00d2ff",
                         "#2f80ff",
@@ -1592,6 +1694,7 @@ elif menu == menus[1]:
                     y="Caixas",
                     color="Ano",
                     markers=True,
+
                     color_discrete_sequence=[
                         "#00d2ff",
                         "#2f80ff",
@@ -1642,7 +1745,8 @@ else:
                 if temp.empty:
 
                     st.info(
-                        "A planilha ainda não possui registros."
+                        "A planilha ainda não possui "
+                        "registros."
                     )
 
                 else:
