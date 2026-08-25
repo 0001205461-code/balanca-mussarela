@@ -1,941 +1,519 @@
-import io
-import os
-import re
+from pathlib import Path
+
+code = r'''import io, os, re
+
 from datetime import datetime
 
 import pandas as pd
+
 import plotly.express as px
+
 import requests
+
 import streamlit as st
 
-st.set_page_config(
-    page_title="AMIRA | Monitoramento de Produção",
-    page_icon="⚡",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+st.set_page_config(page_title="AMIRA | Monitoramento de Produção", page_icon="⚡", layout="wide", initial_sidebar_state="expanded")
 
 URL_SCRIPT = "https://script.google.com/macros/s/AKfycbwQ8IIVRIDsx8-CdJeKw6LUr4rBOFGX0jb42augc8v89TZVNWy0O8mlBAK23O2Tjymmaw/exec"
+
 TZ = "America/Sao_Paulo"
 
-# =========================================================
-# CSS
-# =========================================================
+st.markdown("""<style>
 
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Orbitron:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Orbitron:wght@600;700;800&display=swap');
 
-:root{
- --bg:#05070d;--panel:#0b0f1a;--blue:#2f80ff;--cyan:#00d2ff;
- --purple:#8a35ff;--green:#20e889;--text:#f4f7ff;--muted:#8f9bb2;
-}
+:root{--bg:#05070d;--panel:#0b0f1a;--line:rgba(85,139,255,.24);--blue:#2f80ff;--cyan:#00d2ff;--purple:#8a35ff;--green:#20e889;--text:#f4f7ff;--muted:#8f9bb2}
 
-html,body,[class*="css"]{font-family:Inter,sans-serif}
-.stApp{
- background:
- radial-gradient(circle at 68% 12%,rgba(54,83,180,.13),transparent 28%),
- radial-gradient(circle at 96% 76%,rgba(138,53,255,.12),transparent 31%),
- var(--bg);color:var(--text)
-}
-header[data-testid="stHeader"]{background:transparent!important}
-[data-testid="stDecoration"]{display:none!important}
+html,body,[class*="css"]{font-family:Inter,sans-serif}.stApp{background:radial-gradient(circle at 68% 12%,rgba(54,83,180,.13),transparent 28%),radial-gradient(circle at 96% 76%,rgba(138,53,255,.12),transparent 31%),#05070d;color:var(--text)}
 
-.block-container{padding:1.2rem 1.6rem 2rem;max-width:1700px}
+header[data-testid="stHeader"]{background:transparent!important}[data-testid="stToolbar"]{display:flex!important;background:transparent!important}[data-testid="stDecoration"]{display:none!important}
 
-section[data-testid="stSidebar"]{
- background:linear-gradient(180deg,#070a12,#080b14)!important;
- border-right:1px solid rgba(76,122,255,.18)
-}
+[data-testid="stHeader"] button,[data-testid="stToolbar"] button,[data-testid="stSidebarCollapsedControl"]{color:#dbeaff!important;background:rgba(10,15,29,.92)!important;border:1px solid rgba(76,145,255,.65)!important;border-radius:9px!important;box-shadow:0 0 18px rgba(58,116,255,.28)!important}
 
-section[data-testid="stSidebar"] .stButton{width:100%;margin-bottom:8px}
-section[data-testid="stSidebar"] .stButton button{
- width:100%;min-height:52px;border-radius:10px!important;
- background:#0d1422!important;color:#dce6fa!important;
- border:1px solid rgba(76,122,255,.25)!important;
- text-align:left!important;font-weight:700
-}
-section[data-testid="stSidebar"] .stButton button[kind="primary"]{
- background:linear-gradient(90deg,#1574ff,#7031eb)!important;
- color:#fff!important
-}
+[data-testid="stSidebarCollapsedControl"]{display:flex!important;position:fixed!important;top:.55rem!important;left:.7rem!important;z-index:100000!important}
 
-.brand{text-align:center;font-family:Orbitron;font-size:1.1rem;font-weight:800}
-.brand span,.top-title span{color:var(--cyan)}
-.caption{text-align:center;color:var(--muted);font-size:.75rem}
+.block-container{padding:1.25rem 1.6rem 2rem;max-width:1700px}
 
-.top-title{font-size:2.35rem;font-weight:800}
-.subtitle{color:#a0aabd;font-size:1rem;margin-top:4px}
-.line{height:1px;background:linear-gradient(90deg,#3c78ff,#823cff,transparent);margin:20px 0}
+section[data-testid="stSidebar"]{background:radial-gradient(circle at 50% 12%,rgba(50,117,255,.12),transparent 25%),linear-gradient(180deg,#070a12,#080b14)!important;border-right:1px solid rgba(76,122,255,.18)}
 
-.stButton button,.stDownloadButton button{
- border-radius:10px!important;
- border:1px solid rgba(68,137,255,.55)!important;
- background:linear-gradient(100deg,#0876df,#5631d6)!important;
- color:#fff!important;font-weight:700;min-height:42px
-}
-.stButton button:hover,.stDownloadButton button:hover{
- transform:translateY(-2px)
-}
+section[data-testid="stSidebar"]>div{padding-top:1.05rem}
 
-div[data-baseweb="select"]>div{
- background:#0c111e!important;
- border-color:rgba(76,122,255,.3)!important
-}
-div[data-baseweb="select"] span{color:#e8efff!important}
-.stSelectbox label{color:#8cdfff!important;font-weight:700!important}
+.brand-small{text-align:center;font-family:Orbitron,sans-serif;font-size:1.05rem;font-weight:800;letter-spacing:2px;margin-top:-7px}.brand-small span{color:var(--cyan)}.side-caption{text-align:center;color:var(--muted);font-size:.75rem;margin-top:4px}.nav-title{color:#6fdbff;font-size:.70rem;font-weight:800;letter-spacing:1.5px;margin:25px 0 8px}
 
-.card{
- padding:18px;border-radius:15px;border:1px solid rgba(87,125,210,.22);
- background:linear-gradient(145deg,#0e1320,#070b14);
- min-height:110px
-}
-.card-label{color:#9ca8bc;font-size:.78rem;font-weight:700}
-.card-value{font-family:Orbitron;font-size:1.55rem;font-weight:700;margin-top:8px}
-.card-foot{color:#718097;font-size:.7rem;margin-top:5px}
+section[data-testid="stSidebar"] .stButton{width:100%!important;margin:0 0 10px!important}section[data-testid="stSidebar"] .stButton>button{width:100%!important;min-height:58px!important;padding:14px 16px!important;justify-content:flex-start!important;text-align:left!important;border-radius:10px!important;border:1px solid rgba(76,122,255,.24)!important;background:linear-gradient(135deg,rgba(16,22,37,.98),rgba(10,14,25,.98))!important;color:#dce6fa!important;font-size:.92rem!important;font-weight:750!important;box-shadow:none!important}
 
-.panel{
- border:1px solid rgba(88,130,230,.2);
- background:linear-gradient(145deg,#0b101c,#060a12);
- border-radius:15px;padding:16px
-}
-.panel-title{font-size:1rem;font-weight:800;margin-bottom:5px}
-.panel-sub{color:#77849a;font-size:.75rem}
+section[data-testid="stSidebar"] .stButton>button:hover{border-color:rgba(0,210,255,.75)!important;transform:translateX(3px)!important;box-shadow:0 0 20px rgba(33,133,255,.20)!important}
 
-.section-title{font-size:1.2rem;font-weight:800;margin:8px 0}
-.section-sub{color:#7d8ba2;font-size:.78rem}
+section[data-testid="stSidebar"] .stButton>button[kind="primary"]{background:linear-gradient(90deg,rgba(21,116,255,.98),rgba(112,49,235,.98))!important;color:white!important;border-color:rgba(138,201,255,.8)!important;box-shadow:0 0 22px rgba(71,100,255,.30)!important}
 
-.table-wrap{
- width:100%;max-height:500px;overflow:auto;
- border:1px solid rgba(76,122,255,.25);
- border-radius:12px;background:#08101c
-}
-.amira-table{
- width:100%;border-collapse:collapse;color:#e9f1ff;font-size:.82rem
-}
-.amira-table th{
- position:sticky;top:0;z-index:2;padding:11px;text-align:left;
- color:#fff;background:#101b2d;border-bottom:1px solid #3564a5;
- white-space:nowrap
-}
-.amira-table td{
- padding:9px 11px;border-bottom:1px solid rgba(76,122,255,.12);
- background:#0a1422;white-space:nowrap
-}
-.amira-table tr:nth-child(even) td{background:#0c1727}
-.amira-table tr:hover td{background:#10223a}
-.num{text-align:right}
+.sidebar-status{margin-top:55px;padding:14px;border:1px solid rgba(83,130,255,.20);border-radius:12px;background:rgba(10,14,25,.8)}.dot{display:inline-block;width:8px;height:8px;background:#20e889;border-radius:50%;box-shadow:0 0 10px #20e889;margin-right:7px}
 
-.filter{
- margin:10px 0;padding:11px 14px;border-radius:10px;
- border:1px solid rgba(32,232,137,.35);
- background:rgba(8,61,42,.45);color:#bfe9d3;font-size:.78rem
-}
-.filter b{color:#37ef9b}
+.top-title{font-size:2.4rem;font-weight:800;margin:0}.top-title span{color:#39a7ff}.top-subtitle{color:#a0aabd;font-size:1.05rem;margin-top:4px}.hero-line{height:1px;background:linear-gradient(90deg,rgba(60,120,255,.55),rgba(130,60,255,.32),transparent);margin:22px 0 26px}
 
-.footer{text-align:center;color:#59677d;font-size:.68rem;padding:20px 0}
-</style>
-""", unsafe_allow_html=True)
+.top-controls{display:flex;align-items:flex-end}.top-controls [data-testid="column"]{display:flex;flex-direction:column;justify-content:flex-end}.top-controls [data-testid="stVerticalBlock"]{gap:0!important}.top-controls .stButton,.top-controls .stDownloadButton{margin:0!important;padding:0!important}.top-controls .stButton>button,.top-controls .stDownloadButton>button{height:42px!important;min-height:42px!important;margin:0!important;align-self:flex-end!important}.top-controls div[data-baseweb="select"],.top-controls div[data-baseweb="select"]>div{min-height:42px!important}.button-align{height:0!important;margin:0!important;padding:0!important;line-height:0!important;font-size:0!important}
 
+.stButton>button,.stDownloadButton>button{border-radius:10px!important;border:1px solid rgba(68,137,255,.55)!important;background:linear-gradient(100deg,#0876df,#5631d6)!important;color:#fff!important;font-weight:700!important;min-height:42px!important;box-shadow:0 0 18px rgba(47,128,255,.16);transition:.2s ease!important}.stButton>button:hover,.stDownloadButton>button:hover{transform:translateY(-2px);box-shadow:0 0 25px rgba(103,67,255,.35)}
 
-# =========================================================
-# FUNÇÕES
-# =========================================================
+.metric-card{position:relative;overflow:hidden;min-height:118px;padding:18px;border-radius:15px;border:1px solid rgba(87,125,210,.22);background:linear-gradient(145deg,rgba(14,19,32,.97),rgba(7,11,20,.92));box-shadow:0 12px 35px rgba(0,0,0,.24);transition:.25s ease}.metric-card:hover{transform:translateY(-2px);border-color:rgba(70,157,255,.45)}.metric-label{color:#9ca8bc;font-size:.78rem;font-weight:700}.metric-value{font-family:Orbitron,sans-serif;font-size:1.7rem;font-weight:700;margin-top:8px}.metric-foot{color:#718097;font-size:.72rem;margin-top:7px}.icon-blue{color:#4aa8ff}.icon-purple{color:#a871ff}.icon-cyan{color:#4de8ff}
 
-def vazio():
-    return pd.DataFrame(columns=["Data", "Hora", "Peso (kg)", "Lote"])
+.panel{border:1px solid rgba(88,130,230,.20);background:linear-gradient(145deg,rgba(11,16,28,.97),rgba(6,10,18,.97));border-radius:15px;padding:16px;box-shadow:0 15px 40px rgba(0,0,0,.22)}.panel-title{font-size:1rem;font-weight:800;margin-bottom:4px}.panel-sub{color:#77849a;font-size:.75rem}.section-title{font-size:1.22rem;font-weight:800;margin:5px 0 2px}.section-subtitle{color:#7d8ba2;font-size:.78rem;margin-bottom:12px}.summary-panel{min-height:390px}.summary-row{display:flex;justify-content:space-between;gap:12px;margin:12px 0;color:#8290a7;font-size:.8rem}.summary-row b{color:#f3f6ff}
 
+.stSelectbox label,.stTextInput label{color:#8cdfff!important;font-weight:700!important}div[data-baseweb="select"]>div,div[data-baseweb="input"]>div{background:#0c111e!important;border-color:rgba(76,122,255,.25)!important}div[data-baseweb="select"] span{color:#e8efff!important}
 
-def data_planilha(v):
-    if pd.isna(v) or str(v).strip() == "":
-        return None
+.footer{color:#59677d;font-size:.68rem;text-align:center;padding:20px 0 0}.small-note{color:#6f7e96;font-size:.72rem}
 
-    s = str(v).strip()
+[data-testid="stExpander"]{border:1px solid rgba(83,130,255,.25)!important;border-radius:11px!important;background:rgba(10,15,27,.70)!important;margin-bottom:9px!important}[data-testid="stExpander"] summary{font-weight:750!important;color:#e9f1ff!important}
+
+.amira-table-wrap{width:100%;max-height:520px;overflow:auto;border:1px solid rgba(76,122,255,.25);border-radius:12px;background:#08101c;box-shadow:inset 0 0 25px rgba(22,78,160,.06),0 10px 30px rgba(0,0,0,.18)}.amira-table{width:100%;border-collapse:separate;border-spacing:0;color:#e9f1ff;font-size:.84rem}.amira-table th{position:sticky;top:0;z-index:2;padding:12px 10px;text-align:left;font-weight:800;color:#f4f7ff;background:linear-gradient(135deg,#101b2d,#121a2c);border-bottom:1px solid rgba(76,145,255,.38);white-space:nowrap}.amira-table td{padding:10px;border-bottom:1px solid rgba(76,122,255,.14);background:#0a1422;color:#dbe6f8;white-space:nowrap}.amira-table tbody tr:nth-child(even) td{background:#0c1727}.amira-table tbody tr:hover td{background:#10223a;color:#fff}.amira-table th:first-child{border-top-left-radius:11px}.amira-table th:last-child{border-top-right-radius:11px}.amira-table .num{text-align:right}
+
+.lote-filter-info{margin-top:8px;padding:11px 14px;border:1px solid rgba(32,232,137,.38);border-radius:11px;background:linear-gradient(90deg,rgba(8,61,42,.58),rgba(7,27,30,.70));color:#bfe9d3;font-size:.78rem}.lote-filter-info b{color:#37ef9b}.lote-panel{margin-top:22px}
+
+div[data-testid="stVerticalBlock"] > div:has(.amira-table-wrap){gap:0!important}
+
+</style>""", unsafe_allow_html=True)
+
+def vazio(): return pd.DataFrame(columns=["Data","Hora","Peso (kg)","Lote"])
+
+def formatar_data_planilha(v):
+
+    if pd.isna(v) or str(v).strip()=="": return None
+
+    t=str(v).strip()
+
+    for kwargs in [{"format":"%d/%m/%Y"},{"utc":True},{"dayfirst":True}]:
+
+        try:
+
+            d=pd.to_datetime(t,errors="coerce",**kwargs)
+
+            if not pd.isna(d):
+
+                if getattr(d,"tzinfo",None): d=d.tz_convert(TZ)
+
+                return d.strftime("%d/%m/%Y")
+
+        except: pass
+
+    return t
+
+def formatar_hora_planilha(v):
+
+    if pd.isna(v) or str(v).strip()=="": return None
+
+    t=str(v).strip()
+
+    m=re.match(r"^(\d{1,2}):(\d{2})(?::(\d{2}))?$",t)
+
+    if m: return f"{int(m.group(1)):02d}:{m.group(2)}:{m.group(3) or '00'}"
+
+    m=re.match(r"^1899-12-\d{2}T(\d{2}:\d{2}:\d{2})",t)
+
+    if m:return m.group(1)
 
     try:
-        d = pd.to_datetime(s, format="%d/%m/%Y", errors="coerce")
-        if not pd.isna(d):
-            return d.strftime("%d/%m/%Y")
-    except:
-        pass
 
-    try:
-        d = pd.to_datetime(s, utc=True, errors="coerce")
-        if not pd.isna(d):
-            return d.tz_convert(TZ).strftime("%d/%m/%Y")
-    except:
-        pass
+        if "T" in t or t.endswith("Z"):
 
-    return s
+            d=pd.to_datetime(t,utc=True,errors="coerce")
 
+            if not pd.isna(d): return d.tz_convert(TZ).strftime("%H:%M:%S")
 
-def hora_planilha(v):
-    if pd.isna(v) or str(v).strip() == "":
-        return None
+    except: pass
 
-    s = str(v).strip()
+    return t
 
-    m = re.match(r"^(\d{1,2}):(\d{2})(?::(\d{2}))?$", s)
-    if m:
-        return f"{int(m.group(1)):02d}:{m.group(2)}:{m.group(3) or '00'}"
+def normalizar_lote(v):
 
-    m = re.match(r"^1899-12-\d{2}T(\d{2}:\d{2}:\d{2})", s)
-    if m:
-        return m.group(1)
+    if pd.isna(v) or not str(v).strip(): return "Sem lote"
 
-    try:
-        d = pd.to_datetime(s, utc=True, errors="coerce")
-        if not pd.isna(d):
-            return d.tz_convert(TZ).strftime("%H:%M:%S")
-    except:
-        pass
+    t=re.sub(r"\s+"," ",str(v).strip())
 
-    return s
+    return t.split(".")[0] if re.fullmatch(r"\d+\.0+",t) else t
 
+def normalizar_colunas(df):
 
-def lote(v):
-    if pd.isna(v) or str(v).strip() == "":
-        return "Sem lote"
+    if df is None or df.empty:return vazio()
 
-    s = re.sub(r"\s+", " ", str(v).strip())
-
-    if re.fullmatch(r"\d+\.0+", s):
-        s = s.split(".")[0]
-
-    return s
-
-
-def normalizar(df):
-    if df is None or df.empty:
-        return vazio()
-
-    df = df.copy()
-    nomes = {}
+    df=df.copy(); ren={}
 
     for c in df.columns:
-        k = str(c).strip().lower().replace(" ", "").replace("_", "")
 
-        if k in ["peso", "peso(kg)", "pesokg"]:
-            nomes[c] = "Peso (kg)"
-        elif k == "data":
-            nomes[c] = "Data"
-        elif k == "hora":
-            nomes[c] = "Hora"
-        elif k == "lote":
-            nomes[c] = "Lote"
+        k=str(c).strip().lower().replace(" ","").replace("_","")
 
-    df.rename(columns=nomes, inplace=True)
+        if k in {"peso","peso(kg)","pesokg"}:ren[c]="Peso (kg)"
 
-    for c in ["Data", "Hora", "Peso (kg)", "Lote"]:
-        if c not in df:
-            df[c] = None
+        elif k=="data":ren[c]="Data"
 
-    df["Peso (kg)"] = pd.to_numeric(df["Peso (kg)"], errors="coerce")
-    df["Data"] = df["Data"].map(data_planilha)
-    df["Hora"] = df["Hora"].map(hora_planilha)
-    df["Lote"] = df["Lote"].map(lote)
+        elif k=="hora":ren[c]="Hora"
 
-    return df[["Data", "Hora", "Peso (kg)", "Lote"]].dropna(
-        subset=["Peso (kg)"], how="all"
-    ).reset_index(drop=True)
+        elif k=="lote":ren[c]="Lote"
 
+    df=df.rename(columns=ren)
+
+    for c in ["Data","Hora","Peso (kg)","Lote"]:
+
+        if c not in df:df[c]=None
+
+    df["Peso (kg)"]=pd.to_numeric(df["Peso (kg)"],errors="coerce")
+
+    df["Data"]=df["Data"].map(formatar_data_planilha);df["Hora"]=df["Hora"].map(formatar_hora_planilha);df["Lote"]=df["Lote"].map(normalizar_lote)
+
+    return df[["Data","Hora","Peso (kg)","Lote"]].dropna(subset=["Peso (kg)"],how="all").reset_index(drop=True)
 
 @st.cache_data(ttl=15)
-def carregar():
-    r = requests.get(URL_SCRIPT, timeout=20)
-    r.raise_for_status()
-    dados = r.json()
 
-    if not isinstance(dados, dict):
-        raise ValueError("O Apps Script não devolveu as abas corretamente.")
+def carregar_dados_todas_abas():
 
-    saida = {}
+    r=requests.get(URL_SCRIPT,timeout=20);r.raise_for_status();dados=r.json()
 
-    for nome, conteudo in dados.items():
-        if not isinstance(conteudo, list) or len(conteudo) < 1:
-            continue
+    if not isinstance(dados,dict):raise ValueError("O Google Apps Script não devolveu um JSON de abas.")
 
-        cab = conteudo[0]
-        linhas = conteudo[1:]
+    out={}
 
-        if isinstance(cab, list):
-            saida[str(nome)] = normalizar(
-                pd.DataFrame(linhas, columns=cab)
-            )
+    for nome,conteudo in dados.items():
 
-    return saida
+        if isinstance(conteudo,list) and conteudo and isinstance(conteudo[0],list):
 
+            out[str(nome)]=normalizar_colunas(pd.DataFrame(conteudo[1:],columns=conteudo[0]))
 
-def data_aba(nome):
-    s = str(nome)
+    return out
 
-    for padrao, formato in [
-        (r"(?<!\d)(\d{2}-\d{2}-\d{4})(?!\d)", "%d-%m-%Y"),
-        (r"(?<!\d)(\d{4}-\d{2}-\d{2})(?!\d)", "%Y-%m-%d")
-    ]:
-        m = re.search(padrao, s)
+def data_da_aba(nome):
+
+    for p,f in [(r"(?<!\d)(\d{2}-\d{2}-\d{4})(?!\d)","%d-%m-%Y"),(r"(?<!\d)(\d{4}-\d{2}-\d{2})(?!\d)","%Y-%m-%d")]:
+
+        m=re.search(p,str(nome))
 
         if m:
-            try:
-                return datetime.strptime(m.group(1), formato).date()
-            except:
-                pass
+
+            try:return datetime.strptime(m.group(1),f).date()
+
+            except:pass
 
     return None
 
+def chave_aba(n):
 
-def rotulo(nome):
-    d = data_aba(nome)
-    return d.strftime("%d/%m/%Y") if d else str(nome)
+    d=data_da_aba(n);return datetime.combine(d,datetime.min.time()) if d else datetime.min
 
+def rotulo_aba(n):
 
-def chave(nome):
-    d = data_aba(nome)
-    return datetime.combine(d, datetime.min.time()) if d else datetime.min
+    d=data_da_aba(n);return d.strftime("%d/%m/%Y") if d else str(n)
 
+def formatar_numero(v):return f"{v:,.2f}".replace(",","X").replace(".",",").replace("X",".")
 
-def numero(v):
-    return f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+def tabela_amira(df,max_height=520):
 
+    if df is None or df.empty:st.info("Nenhum registro para exibir.");return
 
-def tabela(df, altura=500):
-    if df is None or df.empty:
-        st.info("Nenhum registro para exibir.")
-        return
+    h=f'<div class="amira-table-wrap" style="max-height:{max_height}px"><table class="amira-table"><thead><tr>'
 
-    h = f"""
-    <div class="table-wrap" style="max-height:{altura}px">
-    <table class="amira-table"><thead><tr>
-    """
+    for c in df.columns:h+=f'<th class="{"num" if c=="Peso (kg)" else ""}">{c}</th>'
 
-    for c in df.columns:
-        h += f"<th>{c}</th>"
+    h+="</tr></thead><tbody>"
 
-    h += "</tr></thead><tbody>"
+    for _,r in df.iterrows():
 
-    for _, row in df.iterrows():
-        h += "<tr>"
+        h+="<tr>"
 
         for c in df.columns:
-            v = row[c]
 
-            if pd.isna(v):
-                v = ""
-            elif c in ["Peso (kg)", "Peso total (kg)", "Média (kg)"]:
-                try:
-                    v = numero(float(v))
-                except:
-                    pass
+            v="" if pd.isna(r[c]) else r[c]
 
-            h += f"<td>{v}</td>"
+            if c=="Peso (kg)":
 
-        h += "</tr>"
+                try:v=formatar_numero(float(v))
 
-    h += "</tbody></table></div>"
+                except:v=str(v)
 
-    st.markdown(h, unsafe_allow_html=True)
+            h+=f'<td class="{"num" if c=="Peso (kg)" else ""}">{v}</td>'
 
+        h+="</tr>"
 
-def layout(fig, altura=300):
-    fig.update_layout(
-        template="plotly_dark",
-        paper_bgcolor="rgba(0,0,0,0)",
-        plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#aeb9cb", family="Inter"),
-        margin=dict(l=10, r=10, t=20, b=10),
-        height=altura,
-        showlegend=False
-    )
+    st.markdown(h+"</tbody></table></div>",unsafe_allow_html=True)
 
-    fig.update_xaxes(
-        gridcolor="rgba(90,120,180,.10)",
-        zeroline=False
-    )
+def gerar_xlsx(df):
 
-    fig.update_yaxes(
-        gridcolor="rgba(90,120,180,.10)",
-        zeroline=False
-    )
+    b=io.BytesIO()
+
+    try:
+
+        from openpyxl import Workbook
+
+        from openpyxl.styles import Font,PatternFill
+
+        wb=Workbook();ws=wb.active;ws.title="Registros";ws.append(list(df.columns))
+
+        for c in ws[1]:c.font=Font(bold=True,color="FFFFFF");c.fill=PatternFill("solid",fgColor="111827")
+
+        for r in df.itertuples(index=False,name=None):ws.append(list(r))
+
+        ws.freeze_panes="A2";ws.auto_filter.ref=ws.dimensions
+
+        for col in ws.columns:
+
+            letra=col[0].column_letter;maior=max(len(str(c.value or "")) for c in col);ws.column_dimensions[letra].width=min(max(maior+2,12),28)
+
+        wb.save(b);return b.getvalue()
+
+    except:return df.to_csv(index=False,sep=";").encode("utf-8-sig")
+
+def grafico_layout(fig,height=300):
+
+    fig.update_layout(template="plotly_dark",paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",font=dict(color="#aeb9cb",family="Inter"),margin=dict(l=10,r=10,t=20,b=10),height=height,showlegend=False,xaxis=dict(gridcolor="rgba(90,120,180,.10)",zeroline=False),yaxis=dict(gridcolor="rgba(90,120,180,.10)",zeroline=False))
 
     return fig
 
+def mostrar_metricas(df):
 
-def agrupar_lote(df):
-    if df.empty:
-        return pd.DataFrame()
+    peso=float(df["Peso (kg)"].sum()) if not df.empty else 0;media=float(df["Peso (kg)"].mean()) if not df.empty else 0
 
-    x = df.copy()
-    x["Lote"] = x["Lote"].map(lote)
+    cards=[("📦","Caixas Passadas",str(len(df)),"Registros filtrados","cyan"),("⚖","Peso Total (kg)",formatar_numero(peso),"Peso acumulado","blue"),("◈","Média por Caixa",f"{formatar_numero(media)} kg","Média dos registros","purple")]
 
-    return x.groupby("Lote").agg(
-        Pesagens=("Peso (kg)", "count"),
-        **{
-            "Peso total (kg)": ("Peso (kg)", "sum"),
-            "Média (kg)": ("Peso (kg)", "mean")
-        }
-    ).reset_index()
+    for col,(i,l,v,f,c) in zip(st.columns(3),cards):
 
+        with col:st.markdown(f'<div class="metric-card"><div class="metric-label"><span class="icon-{c}">{i}</span>&nbsp;&nbsp;{l}</div><div class="metric-value">{v}</div><div class="metric-foot">{f}</div></div>',unsafe_allow_html=True)
 
-def metricas(df):
-    caixas = len(df)
-    peso = float(df["Peso (kg)"].sum()) if not df.empty else 0
-    media = float(df["Peso (kg)"].mean()) if not df.empty else 0
+def agrupar_por_lote(df):
 
-    dados = [
-        ("📦", "Caixas Passadas", caixas, "Registros filtrados"),
-        ("⚖", "Peso Total", f"{numero(peso)} kg", "Peso acumulado"),
-        ("◈", "Média por Caixa", f"{numero(media)} kg", "Média dos registros")
-    ]
+    if df is None or df.empty:return pd.DataFrame(columns=["Lote","Pesagens","Peso total (kg)","Média (kg)"])
 
-    cols = st.columns(3)
+    x=df.copy();x["Lote"]=x["Lote"].map(normalizar_lote)
 
-    for col, (ico, nome, valor, rodape) in zip(cols, dados):
-        with col:
-            st.markdown(f"""
-            <div class="card">
-                <div class="card-label">{ico} &nbsp; {nome}</div>
-                <div class="card-value">{valor}</div>
-                <div class="card-foot">{rodape}</div>
-            </div>
-            """, unsafe_allow_html=True)
+    g=x.groupby("Lote",dropna=False).agg(Pesagens=("Peso (kg)","count"),**{"Peso total (kg)":("Peso (kg)","sum"),"Média (kg)":("Peso (kg)","mean")}).reset_index()
 
+    g["_o"]=g.Lote.map(lambda v:(0,int(v)) if str(v).isdigit() else (1,str(v).lower()))
 
-def xlsx(df):
-    b = io.BytesIO()
+    return g.sort_values("_o").drop(columns="_o").reset_index(drop=True)
 
-    try:
-        from openpyxl import Workbook
-        from openpyxl.styles import Font, PatternFill
+def mostrar_producao_por_lote(df):
 
-        wb = Workbook()
-        ws = wb.active
-        ws.title = "Registros"
+    g=agrupar_por_lote(df)
 
-        ws.append(list(df.columns))
+    st.markdown('<div class="panel lote-panel"><div class="panel-title" style="font-size:1.15rem;">📦 Produção por Lote</div><div class="panel-sub" style="font-size:.80rem;margin-bottom:14px;">O sistema agrupa automaticamente todas as pesagens que possuem o mesmo lote.</div>',unsafe_allow_html=True)
 
-        for c in ws[1]:
-            c.font = Font(bold=True, color="FFFFFF")
-            c.fill = PatternFill("solid", fgColor="111827")
+    if g.empty:st.info("Não há lotes para agrupar.");st.markdown("</div>",unsafe_allow_html=True);return
 
-        for row in df.itertuples(index=False, name=None):
-            ws.append(list(row))
+    ex=g.copy()
 
-        ws.freeze_panes = "A2"
-        ws.auto_filter.ref = ws.dimensions
-        wb.save(b)
+    for c in ["Peso total (kg)","Média (kg)"]:ex[c]=ex[c].round(2).map(formatar_numero)
 
-        return b.getvalue()
+    tabela_amira(ex,max_height=360)
 
-    except:
-        return df.to_csv(index=False, sep=";").encode("utf-8-sig")
+    c1,c2=st.columns(2)
 
+    with c1:
 
-# =========================================================
-# CARREGAR DADOS
-# =========================================================
+        st.markdown('<div class="panel-title">⚖ Peso total por lote</div>',unsafe_allow_html=True)
 
-try:
-    dados = carregar()
-    erro = None
-except Exception as e:
-    dados = {}
-    erro = str(e)
+        f=px.bar(g,x="Lote",y="Peso total (kg)",text="Peso total (kg)");f.update_traces(marker_color="#2f80ff",texttemplate="%{text:.2f}",textposition="outside",cliponaxis=False);f.update_layout(yaxis_title="Peso (kg)",xaxis_title="Lote");st.plotly_chart(grafico_layout(f,280),use_container_width=True,config={"displayModeBar":False})
 
-abas = sorted(dados.keys(), key=chave, reverse=True)
+    with c2:
 
-if erro:
-    st.error(f"Erro ao carregar os dados: {erro}")
+        st.markdown('<div class="panel-title">📦 Pesagens por lote</div>',unsafe_allow_html=True)
 
+        f=px.bar(g,x="Lote",y="Pesagens",text="Pesagens");f.update_traces(marker_color="#8a35ff",texttemplate="%{text}",textposition="outside",cliponaxis=False);f.update_layout(yaxis_title="Quantidade",xaxis_title="Lote");st.plotly_chart(grafico_layout(f,280),use_container_width=True,config={"displayModeBar":False})
 
-# =========================================================
-# SIDEBAR
-# =========================================================
+    st.markdown("</div>",unsafe_allow_html=True)
+
+try:dados_abas=carregar_dados_todas_abas();erro_api=None
+
+except Exception as e:dados_abas={};erro_api=str(e)
+
+lista_abas=sorted(dados_abas,key=chave_aba,reverse=True)
+
+dia_atual=st.session_state.get("dia_selecionado",lista_abas[0] if lista_abas else None)
+
+if dia_atual not in lista_abas and lista_abas:dia_atual=lista_abas[0]
+
+lote_atual=st.session_state.get("lote_selecionado","Todos os lotes")
 
 with st.sidebar:
 
-    if os.path.exists("logo.png"):
-        st.image("logo.png", use_container_width=True)
-    elif os.path.exists("logo.jpg"):
-        st.image("logo.jpg", use_container_width=True)
+    if os.path.exists("logo.png"):st.image("logo.png",use_container_width=True)
 
-    st.markdown(
-        '<div class="brand">Sistema <span>AMIRA</span></div>'
-        '<div class="caption">Monitoramento • Automação • Precisão</div>',
-        unsafe_allow_html=True
-    )
+    elif os.path.exists("logo.jpg"):st.image("logo.jpg",use_container_width=True)
 
-    st.markdown("### MENU")
+    st.markdown('<div class="brand-small">Sistema <span>AMIRA</span></div><div class="side-caption">Monitoramento • Automação • Precisão</div><div class="nav-title">MENU DE NAVEGAÇÃO</div>',unsafe_allow_html=True)
 
-    menus = [
-        "📋  Registro e Dados",
-        "📊  Gráficos e Análises",
-        "🗂  Histórico de Planilhas"
-    ]
+    opcoes=["📋  Registro e Dados","📊  Gráficos e Análises","🗂  Histórico de Planilhas"];menu=st.session_state.get("menu_amira",opcoes[0])
 
-    menu = st.session_state.get("menu", menus[0])
+    for i,o in enumerate(opcoes):
 
-    for i, m in enumerate(menus):
-        if st.button(
-            m,
-            key=f"menu_{i}",
-            type="primary" if menu == m else "secondary",
-            use_container_width=True
-        ):
-            st.session_state.menu = m
-            st.rerun()
+        if st.button(o,key=f"menu_amira_{i}",type="primary" if menu==o else "secondary",use_container_width=True):st.session_state["menu_amira"]=o;st.rerun()
 
-    st.markdown(
-        '<br><div class="panel">🟢 <b>Sistema AMIRA</b><br>'
-        '<span style="color:#7f8da4;font-size:.75rem">Monitoramento ativo</span>'
-        '</div>',
-        unsafe_allow_html=True
-    )
+    st.markdown('<div class="sidebar-status"><b>Sistema AMIRA</b><div style="color:#7f8da4;font-size:.75rem;margin-top:5px;"><span class="dot"></span>Monitoramento ativo</div></div><div class="footer">©️ 2026 AMIRA • SENAI<br>IoT • Automação • Precisão</div>',unsafe_allow_html=True)
 
+titulos={"📋  Registro e Dados":("<span>Bem-vindo à</span> AMIRA","Sistema de Monitoramento e Registro de Produção"),"📊  Gráficos e Análises":("<span>Gráficos</span> e Análises","Explore o histórico e compare dias e meses de produção."),"🗂  Histórico de Planilhas":("<span>Histórico</span> de Planilhas","Controle de lançamentos no sistema da empresa.")}
 
-# =========================================================
-# CABEÇALHO
-# =========================================================
+t,s=titulos[menu];st.markdown(f'<div class="top-title">{t}</div><div class="top-subtitle">{s}</div><div style="margin-top:15px"></div>',unsafe_allow_html=True)
 
-titulos = {
-    menus[0]: ("Bem-vindo à <span>AMIRA</span>",
-               "Sistema de Monitoramento e Registro de Produção"),
-    menus[1]: ("<span>Gráficos</span> e Análises",
-               "Explore o histórico e compare a produção."),
-    menus[2]: ("<span>Histórico</span> de Planilhas",
-               "Controle dos lançamentos registrados.")
-}
+st.markdown('<div class="top-controls">',unsafe_allow_html=True)
 
-titulo, subtitulo = titulos[menu]
+col_dia,col_lote,col_b1,col_b2=st.columns([1.25,1.25,.9,.9],gap="small")
 
-st.markdown(
-    f'<div class="top-title">{titulo}</div>'
-    f'<div class="subtitle">{subtitulo}</div>'
-    '<div class="line"></div>',
-    unsafe_allow_html=True
-)
+with col_dia:
 
+    if menu=="📋  Registro e Dados" and lista_abas:
 
-# =========================================================
-# FILTROS
-# =========================================================
+        novo=st.selectbox("📅 Dia de Produção",lista_abas,format_func=rotulo_aba,index=lista_abas.index(dia_atual) if dia_atual in lista_abas else 0,key="select_dia_amira")
 
-dia = st.session_state.get(
-    "dia",
-    abas[0] if abas else None
-)
+        if novo!=dia_atual:st.session_state["dia_selecionado"]=novo;st.session_state["lote_selecionado"]="Todos os lotes";st.rerun()
 
-lote_atual = st.session_state.get(
-    "lote",
-    "Todos os lotes"
-)
+        dia_atual=novo
 
-c1, c2, c3, c4 = st.columns([1.3, 1.3, .9, .9])
+df=dados_abas.get(dia_atual,vazio()) if dia_atual else vazio()
 
-with c1:
+with col_lote:
 
-    if menu == menus[0] and abas:
+    if menu=="📋  Registro e Dados" and not df.empty:
 
-        novo_dia = st.selectbox(
-            "📅 Dia de Produção",
-            abas,
-            index=abas.index(dia) if dia in abas else 0,
-            format_func=rotulo
-        )
+        lotes=sorted(df["Lote"].map(normalizar_lote).drop_duplicates().tolist(),key=lambda x:(0,int(x)) if str(x).isdigit() else (1,str(x).lower()))
 
-        if novo_dia != dia:
-            st.session_state.dia = novo_dia
-            st.session_state.lote = "Todos os lotes"
-            st.rerun()
+        op=["Todos os lotes"]+lotes
 
-        dia = novo_dia
+        if lote_atual not in op:lote_atual="Todos os lotes"
 
+        novo=st.selectbox("🔎 Filtrar por lote",op,index=op.index(lote_atual),key="select_lote_amira")
 
-df = dados.get(dia, vazio()) if dia else vazio()
+        if novo!=lote_atual:st.session_state["lote_selecionado"]=novo;st.rerun()
 
+        lote_atual=novo
 
-with c2:
+df_filtrado=df[df["Lote"].map(normalizar_lote)==lote_atual].copy() if menu=="📋  Registro e Dados" and lote_atual!="Todos os lotes" else df.copy()
 
-    if menu == menus[0] and not df.empty:
+with col_b1:
 
-        lotes = sorted(
-            df["Lote"].map(lote).unique(),
-            key=lambda x: (0, int(x)) if str(x).isdigit()
-            else (1, str(x).lower())
-        )
+    if menu=="📋  Registro e Dados":
 
-        opcoes = ["Todos os lotes"] + list(lotes)
+        if st.button("🔄 Recarregar Dados",use_container_width=True,key="recarregar_amira"):carregar_dados_todas_abas.clear();st.rerun()
 
-        if lote_atual not in opcoes:
-            lote_atual = "Todos os lotes"
+with col_b2:
 
-        novo_lote = st.selectbox(
-            "🔎 Filtrar por lote",
-            opcoes,
-            index=opcoes.index(lote_atual)
-        )
+    if menu=="📋  Registro e Dados" and dia_atual and not df_filtrado.empty:
 
-        if novo_lote != lote_atual:
-            st.session_state.lote = novo_lote
-            st.rerun()
+        st.download_button("⬇️ Baixar Planilha",data=gerar_xlsx(df_filtrado),file_name=f"AMIRA_Producao_{rotulo_aba(dia_atual).replace('/','-')}{('_Lote_'+str(lote_atual)) if lote_atual!='Todos os lotes' else ''}.xlsx",mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",use_container_width=True,key="download_amira")
 
-        lote_atual = novo_lote
+st.markdown('</div><div class="hero-line"></div>',unsafe_allow_html=True)
 
+if menu=="📋  Registro e Dados":
 
-df_filtro = (
-    df[df["Lote"].map(lote) == lote_atual].copy()
-    if lote_atual != "Todos os lotes"
-    else df.copy()
-)
+    if lote_atual!="Todos os lotes" and not df_filtrado.empty:st.markdown(f'<div class="lote-filter-info">🔎 Filtro ativo: <b>Lote {lote_atual}</b> • Exibindo apenas as pesagens desse lote.</div>',unsafe_allow_html=True)
 
+    elif not df.empty:st.markdown('<div class="lote-filter-info">🟢 <b>Todos os lotes</b> • O sistema agrupou automaticamente os registros iguais.</div>',unsafe_allow_html=True)
 
-with c3:
+    st.markdown('<div class="section-title">Dados do Dia</div>',unsafe_allow_html=True);mostrar_metricas(df_filtrado);st.markdown("<br>",unsafe_allow_html=True);mostrar_producao_por_lote(df_filtrado);st.markdown("<br><div class='section-title' style='font-size:1.2rem;'>📋 Registros de Produção</div><div class='section-subtitle'>Pesagens registradas no dia selecionado.</div>",unsafe_allow_html=True)
 
-    if menu == menus[0]:
-
-        if st.button("🔄 Recarregar", use_container_width=True):
-            carregar.clear()
-            st.rerun()
-
-
-with c4:
-
-    if menu == menus[0] and not df_filtro.empty:
-
-        st.download_button(
-            "⬇️ Excel",
-            xlsx(df_filtro),
-            file_name=f"AMIRA_{rotulo(dia).replace('/','-')}.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True
-        )
-
-
-# =========================================================
-# REGISTRO E DADOS
-# =========================================================
-
-if menu == menus[0]:
-
-    if lote_atual != "Todos os lotes":
-
-        st.markdown(
-            f'<div class="filter">🔎 Filtro ativo: '
-            f'<b>Lote {lote_atual}</b></div>',
-            unsafe_allow_html=True
-        )
-
-    metricas(df_filtro)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-
-    # ---------------- LOTE ----------------
-
-    st.markdown(
-        '<div class="section-title">📦 Produção por Lote</div>'
-        '<div class="section-sub">Agrupamento automático das pesagens.</div>',
-        unsafe_allow_html=True
-    )
-
-    agrupado = agrupar_lote(df_filtro)
-
-    if not agrupado.empty:
-
-        a, b = st.columns([1, 1.2])
-
-        with a:
-            tabela(agrupado, 350)
-
-        with b:
-
-            fig = px.bar(
-                agrupado,
-                x="Lote",
-                y="Peso total (kg)",
-                text="Peso total (kg)"
-            )
-
-            fig.update_traces(
-                marker_color="#2f80ff",
-                texttemplate="%{text:.2f}",
-                textposition="outside"
-            )
-
-            st.plotly_chart(
-                layout(fig, 280),
-                use_container_width=True,
-                config={"displayModeBar": False}
-            )
+    if df_filtrado.empty:st.info("Aguardando pesagens para exibir na tabela.")
 
     else:
-        st.info("Nenhum lote disponível.")
 
-    # ---------------- TABELA ----------------
+        ex=df_filtrado.copy().reset_index(drop=True);ex.insert(0,"#",ex.index+1);tabela_amira(ex,440)
 
-    st.markdown(
-        '<div class="section-title">📋 Registros de Produção</div>'
-        '<div class="section-sub">Pesagens do dia selecionado.</div>',
-        unsafe_allow_html=True
-    )
+    st.markdown("<br>",unsafe_allow_html=True)
 
-    if df_filtro.empty:
-        st.info("Aguardando pesagens para exibir na tabela.")
-    else:
+    peso=float(df_filtrado["Peso (kg)"].sum()) if not df_filtrado.empty else 0;media=float(df_filtrado["Peso (kg)"].mean()) if not df_filtrado.empty else 0
 
-        tabela_dia = df_filtro.copy().reset_index(drop=True)
-        tabela_dia.insert(0, "#", tabela_dia.index + 1)
+    st.markdown(f'<div class="panel summary-panel"><div class="panel-title">Resumo do Dia</div><div class="panel-sub">Indicadores principais</div><div style="display:flex;justify-content:center;align-items:center;padding:30px 0 25px;"><div style="width:145px;height:145px;border-radius:50%;background:conic-gradient(#3d8cff 85%,rgba(255,255,255,.05) 85%);display:flex;justify-content:center;align-items:center;"><div style="width:125px;height:125px;border-radius:50%;background:#080c14;display:flex;flex-direction:column;justify-content:center;align-items:center;"><span style="font-family:Orbitron;font-size:1.35rem;font-weight:800;color:#fff">{formatar_numero(peso)}</span><span style="font-size:.75rem;color:#77849a">kg</span></div></div></div><div class="summary-row"><span>📦 Caixas passadas</span><b>{len(df_filtrado)}</b></div><div class="summary-row"><span>↗️ Média por caixa</span><b>{formatar_numero(media)} kg</b></div><div class="summary-row"><span>⚖ Peso total acumulado</span><b>{formatar_numero(peso)} kg</b></div></div>',unsafe_allow_html=True)
 
-        tabela(tabela_dia, 440)
+    st.markdown("<br><br><div class='section-title' style='font-size:1.2rem;'>Desempenho do Dia</div>",unsafe_allow_html=True)
 
-    # ---------------- GRÁFICOS ----------------
+    g1,g2=st.columns(2)
 
-    st.markdown(
-        '<br><div class="section-title">📈 Desempenho do Dia</div>',
-        unsafe_allow_html=True
-    )
+    with g1:
 
-    g1, g2 = st.columns(2)
+        st.markdown('<div class="panel-title">Peso ao longo do dia</div>',unsafe_allow_html=True)
 
-    if not df_filtro.empty:
+        if not df_filtrado.empty:
 
-        temp = df_filtro.reset_index(drop=True).copy()
-        temp["Registro"] = temp.index + 1
+            x=df_filtrado.reset_index(drop=True).copy();x["Registro"]=x.index+1;f=px.area(x,x="Registro",y="Peso (kg)");f.update_traces(line_color="#3d8cff",fillcolor="rgba(61,140,255,.15)");st.plotly_chart(grafico_layout(f),use_container_width=True,config={"displayModeBar":False})
 
-        with g1:
+    with g2:
 
-            st.markdown("**Peso ao longo do dia**")
+        st.markdown('<div class="panel-title">Distribuição dos pesos</div>',unsafe_allow_html=True)
 
-            fig = px.area(
-                temp,
-                x="Registro",
-                y="Peso (kg)"
-            )
+        if not df_filtrado.empty:
 
-            fig.update_traces(
-                line_color="#3d8cff",
-                fillcolor="rgba(61,140,255,.15)"
-            )
+            f=px.histogram(df_filtrado,x="Peso (kg)",nbins=8);f.update_traces(marker_color="#7d4cff",marker_line_color="#05070d",marker_line_width=2);f.update_layout(bargap=.08);st.plotly_chart(grafico_layout(f),use_container_width=True,config={"displayModeBar":False})
 
-            st.plotly_chart(
-                layout(fig),
-                use_container_width=True,
-                config={"displayModeBar": False}
-            )
+elif menu=="📊  Gráficos e Análises":
 
-        with g2:
-
-            st.markdown("**Distribuição dos pesos**")
-
-            fig = px.histogram(
-                df_filtro,
-                x="Peso (kg)",
-                nbins=8
-            )
-
-            fig.update_traces(
-                marker_color="#8a35ff"
-            )
-
-            st.plotly_chart(
-                layout(fig),
-                use_container_width=True,
-                config={"displayModeBar": False}
-            )
-
-
-# =========================================================
-# GRÁFICOS E ANÁLISES
-# =========================================================
-
-elif menu == menus[1]:
-
-    resumo = []
-
-    for nome, temp in dados.items():
-
-        if not temp.empty:
-
-            resumo.append({
-                "Data": rotulo(nome),
-                "Peso total (kg)": temp["Peso (kg)"].sum(),
-                "Caixas": len(temp)
-            })
-
-    rdf = pd.DataFrame(resumo)
-
-    if rdf.empty:
-
-        st.info("Aguardando dados para gerar os gráficos.")
+    if not lista_abas:st.info("Aguardando registros para gerar as análises.")
 
     else:
 
-        st.markdown(
-            '<div class="section-title">📊 Comparativo Diário</div>',
-            unsafe_allow_html=True
-        )
+        st.markdown('<div class="panel-title" style="font-size:1.15rem;color:#00d2ff;">Comparativo Diário</div><div class="section-subtitle">Produção dia a dia</div>',unsafe_allow_html=True)
 
-        c1, c2 = st.columns(2)
+        resumo=[{"Data":rotulo_aba(n),"Peso total (kg)":t["Peso (kg)"].sum(),"Caixas":len(t)} for n,t in dados_abas.items() if not t.empty];rdf=pd.DataFrame(resumo)
 
-        with c1:
+        if not rdf.empty:
 
-            fig = px.bar(
-                rdf,
-                x="Data",
-                y="Peso total (kg)"
-            )
-
-            fig.update_traces(marker_color="#2f80ff")
-
-            st.plotly_chart(
-                layout(fig),
-                use_container_width=True,
-                config={"displayModeBar": False}
-            )
-
-        with c2:
-
-            fig = px.bar(
-                rdf,
-                x="Data",
-                y="Caixas"
-            )
-
-            fig.update_traces(marker_color="#8a35ff")
-
-            st.plotly_chart(
-                layout(fig),
-                use_container_width=True,
-                config={"displayModeBar": False}
-            )
-
-        # ---------------- MENSAL ----------------
-
-        mensal = []
-
-        for nome, temp in dados.items():
-
-            d = data_aba(nome)
-
-            if d and not temp.empty:
-
-                mensal.append({
-                    "Ano": d.year,
-                    "Mês": d.strftime("%m/%Y"),
-                    "Mês_Num": d.month,
-                    "Peso": temp["Peso (kg)"].sum(),
-                    "Caixas": len(temp)
-                })
-
-        if mensal:
-
-            m = pd.DataFrame(mensal)
-
-            m = (
-                m.groupby(["Ano", "Mês", "Mês_Num"])
-                [["Peso", "Caixas"]]
-                .sum()
-                .reset_index()
-                .sort_values(["Ano", "Mês_Num"])
-            )
-
-            st.markdown(
-                '<br><div class="section-title">📅 Análise Mensal</div>',
-                unsafe_allow_html=True
-            )
-
-            c1, c2 = st.columns(2)
+            c1,c2=st.columns(2)
 
             with c1:
 
-                fig = px.bar(
-                    m,
-                    x="Mês",
-                    y="Peso",
-                    color="Ano",
-                    color_discrete_sequence=[
-                        "#00d2ff",
-                        "#2f80ff",
-                        "#8a35ff"
-                    ]
-                )
-
-                st.plotly_chart(
-                    layout(fig),
-                    use_container_width=True,
-                    config={"displayModeBar": False}
-                )
+                st.markdown('<div class="panel-title">Peso Diário (kg)</div>',unsafe_allow_html=True);f=px.bar(rdf,x="Data",y="Peso total (kg)");f.update_traces(marker_color="#2f80ff");st.plotly_chart(grafico_layout(f),use_container_width=True,config={"displayModeBar":False})
 
             with c2:
 
-                fig = px.line(
-                    m,
-                    x="Mês",
-                    y="Caixas",
-                    color="Ano",
-                    markers=True,
-                    color_discrete_sequence=[
-                        "#00d2ff",
-                        "#2f80ff",
-                        "#8a35ff"
-                    ]
-                )
+                st.markdown('<div class="panel-title">Caixas por Dia</div>',unsafe_allow_html=True);f=px.bar(rdf,x="Data",y="Caixas");f.update_traces(marker_color="#8a35ff");st.plotly_chart(grafico_layout(f),use_container_width=True,config={"displayModeBar":False})
 
-                fig.update_traces(line_width=3)
+        st.markdown('<br><div class="panel-title" style="font-size:1.15rem;color:#00d2ff;">Análise de Longo Prazo (Mensal)</div><div class="section-subtitle">Comparativo histórico agrupado por mês e ano para controle gerencial.</div>',unsafe_allow_html=True)
 
-                st.plotly_chart(
-                    layout(fig),
-                    use_container_width=True,
-                    config={"displayModeBar": False}
-                )
+        lt=[]
 
+        for n,t in dados_abas.items():
 
-# =========================================================
-# HISTÓRICO
-# =========================================================
+            if not t.empty and data_da_aba(n):
+
+                d=data_da_aba(n);lt.append({"Ano":str(d.year),"Mês_Num":d.month,"Mês/Ano":f"{d.month:02d}/{d.year}","Peso total (kg)":t["Peso (kg)"].sum(),"Caixas":len(t)})
+
+        if lt:
+
+            x=pd.DataFrame(lt).groupby(["Ano","Mês_Num","Mês/Ano"]).sum().reset_index().sort_values(["Ano","Mês_Num"]);a,b=st.columns(2)
+
+            with a:
+
+                st.markdown('<div class="panel-title">Produção Mensal Acumulada (kg)</div>',unsafe_allow_html=True);f=px.bar(x,x="Mês/Ano",y="Peso total (kg)",color="Ano",color_discrete_sequence=["#00d2ff","#2f80ff","#8a35ff"]);st.plotly_chart(grafico_layout(f),use_container_width=True,config={"displayModeBar":False})
+
+            with b:
+
+                st.markdown('<div class="panel-title">Volume Mensal (Qtd. Caixas)</div>',unsafe_allow_html=True);f=px.line(x,x="Mês/Ano",y="Caixas",color="Ano",markers=True,color_discrete_sequence=["#00d2ff","#2f80ff","#8a35ff"]);f.update_traces(line_width=3,marker=dict(size=8));st.plotly_chart(grafico_layout(f),use_container_width=True,config={"displayModeBar":False})
+
+        else:st.info("Aguardando dados históricos suficientes para gerar gráficos mensais.")
 
 else:
 
-    if not abas:
+    st.markdown('<div class="section-title">Histórico de Planilhas</div>',unsafe_allow_html=True)
 
-        st.info("Ainda não há planilhas registradas.")
+    if not lista_abas:st.info("Ainda não há planilhas registradas pela balança.")
 
     else:
 
-        for nome in abas:
+        for n in lista_abas:
 
-            temp = dados.get(nome, vazio())
-            rot = rotulo(nome)
+            t=dados_abas.get(n,vazio());r=rotulo_aba(n)
 
-            with st.expander(f"📄 {rot}"):
+            with st.expander(f"📅 {r}",expanded=False):
 
-                if temp.empty:
-
-                    st.info("A planilha ainda não possui registros.")
+                if t.empty:st.info("A planilha existe, mas ainda não possui registros.")
 
                 else:
 
-                    hist = temp.copy().reset_index(drop=True)
-                    hist.insert(0, "#", hist.index + 1)
+                    ex=t.copy().reset_index(drop=True);ex.insert(0,"#",ex.index+1);tabela_amira(ex,430);g=agrupar_por_lote(t)
 
-                    tabela(hist, 400)
+                    if not g.empty:
 
-                    resumo = agrupar_lote(temp)
+                        for c in ["Peso total (kg)","Média (kg)"]:g[c]=g[c].map(formatar_numero)
 
-                    if not resumo.empty:
+                        st.markdown('<div class="panel-title" style="margin-top:18px;">📦 Resumo por lote</div>',unsafe_allow_html=True);tabela_amira(g,300)
 
-                        st.markdown(
-                            "#### 📦 Resumo por lote"
-                        )
+st.markdown('<div class="footer">AMIRA • Sistema de Monitoramento e Registro de Produção • SENAI</div>',unsafe_allow_html=True)
 
-                        tabela(resumo, 300)
+'''
 
+path = Path("/mnt/data/app.py")
 
-# =========================================================
-# RODAPÉ
-# =========================================================
+path.write_text(code, encoding="utf-8")
 
-st.markdown(
-    '<div class="footer">'
-    'AMIRA • Sistema de Monitoramento e Registro de Produção • SENAI'
-    '</div>',
-    unsafe_allow_html=True
-)
+print(path)
