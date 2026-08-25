@@ -512,8 +512,4 @@ st.markdown('<div class="footer">AMIRA • Sistema de Monitoramento e Registro d
 
 '''
 
-path = Path("/mnt/data/app.py")
-
-path.write_text(code, encoding="utf-8")
-
 print(path)
