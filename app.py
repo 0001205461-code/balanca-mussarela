@@ -854,21 +854,11 @@ def metricas(df):
         with col:
 
             st.markdown(
-                f"""
-                <div class="card">
-                    <div class="card-label">
-                        {ico} &nbsp; {nome}
-                    </div>
-
-                    <div class="card-value">
-                        {valor}
-                    </div>
-
-                    <div class="card-foot">
-                        {rodape}
-                    </div>
-                </div>
-                """,
+                f"""<div class="card">
+<div class="card-label">{ico} &nbsp; {nome}</div>
+<div class="card-value">{valor}</div>
+<div class="card-foot">{rodape}</div>
+</div>""",
                 unsafe_allow_html=True
             )
 
