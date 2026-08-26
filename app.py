@@ -426,11 +426,16 @@ def hora_planilha(v):
 
     s = str(v).strip()
 
-    # 1. Se vier no formato ISO do Sheets (ex: 1899-12-30T16:58:46.000Z),
-    # captura a hora exata via expressão regular SEM passar por parser de timezone
+    # 1. Se vier no formato ISO do Sheets (ex: 1899-12-30T20:54:13.000Z),
+    # corrige o deslocamento de 8 horas antes de exibir a hora
     m_iso = re.search(r"T(\d{2}:\d{2}:\d{2})", s)
     if m_iso:
-        return m_iso.group(1)
+        h, m, sec = map(int, m_iso.group(1).split(":"))
+        total_segundos = (h * 3600 + m * 60 + sec - 8 * 3600) % (24 * 3600)
+        h = total_segundos // 3600
+        m = (total_segundos % 3600) // 60
+        sec = total_segundos % 60
+        return f"{h:02d}:{m:02d}:{sec:02d}"
 
     # 2. Formato comum HH:MM:SS ou HH:MM
     m = re.match(r"^(\d{1,2}):(\d{2})(?::(\d{2}))?$", s)
