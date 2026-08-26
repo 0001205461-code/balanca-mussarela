@@ -391,32 +391,59 @@ def vazio():
     )
 
 
+def data_planilha(v):
+    if pd.isna(v) or str(v).strip() == "":
+        return None
+
+    s = str(v).strip()
+
+    # Se contiver a letra 'T' (formato ISO/Sheets), pega só a parte da data YYYY-MM-DD ou extrai via Regex
+    if "T" in s:
+        s = s.split("T")[0]
+
+    # Tenta converter no formato DD/MM/YYYY
+    try:
+        d = pd.to_datetime(s, format="%d/%m/%Y", errors="coerce")
+        if not pd.isna(d):
+            return d.strftime("%d/%m/%Y")
+    except Exception:
+        pass
+
+    # Tenta converter qualquer outro formato sem considerar UTC/Timezone
+    try:
+        d = pd.to_datetime(s, errors="coerce")
+        if not pd.isna(d):
+            return d.strftime("%d/%m/%Y")
+    except Exception:
+        pass
+
+    return s
+
+
 def hora_planilha(v):
     if pd.isna(v) or str(v).strip() == "":
         return None
 
     s = str(v).strip()
 
-    # 1. Se vier no formato ISO do Sheets com o 'Z' no final (UTC)
-    # Exemplo: 1899-12-30T16:58:46.000Z
-    if "T" in s and s.endswith("Z"):
-        try:
-            # Mantém o horário exatamente como recebido da planilha.
-            dt = pd.to_datetime(s, utc=True)
-            return dt.strftime("%H:%M:%S")
-        except Exception:
-            pass
+    # 1. Se vier no formato ISO do Sheets (ex: 1899-12-30T16:58:46.000Z),
+    # captura a hora exata via expressão regular SEM passar por parser de timezone
+    m_iso = re.search(r"T(\d{2}:\d{2}:\d{2})", s)
+    if m_iso:
+        return m_iso.group(1)
 
-    # 2. Se vier como texto simples de hora (ex: 16:58:46 ou 16:58)
+    # 2. Formato comum HH:MM:SS ou HH:MM
     m = re.match(r"^(\d{1,2}):(\d{2})(?::(\d{2}))?$", s)
     if m:
         return f"{int(m.group(1)):02d}:{m.group(2)}:{m.group(3) or '00'}"
 
-    # 3. Tratamento genérico para outros formatos de data/hora
+    # 3. Se contiver a letra 'Z' ou offset de fuso, remove antes de converter
+    s_limpo = re.sub(r"(Z|[+-]\d{2}:\d{2})$", "", s)
+
     try:
-        dt = pd.to_datetime(s, errors="coerce")
-        if not pd.isna(dt):
-            return dt.strftime("%H:%M:%S")
+        d = pd.to_datetime(s_limpo, errors="coerce")
+        if not pd.isna(d):
+            return d.strftime("%H:%M:%S")
     except Exception:
         pass
 
