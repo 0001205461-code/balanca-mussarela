@@ -401,10 +401,9 @@ def hora_planilha(v):
     # Exemplo: 1899-12-30T16:58:46.000Z
     if "T" in s and s.endswith("Z"):
         try:
-            # Converte assumindo UTC e ajusta +8 horas (ou converte para o fuso local)
+            # Mantém o horário exatamente como recebido da planilha.
             dt = pd.to_datetime(s, utc=True)
-            dt_corrigido = dt + pd.Timedelta(hours=8)
-            return dt_corrigido.strftime("%H:%M:%S")
+            return dt.strftime("%H:%M:%S")
         except Exception:
             pass
 
