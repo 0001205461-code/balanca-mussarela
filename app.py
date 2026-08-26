@@ -1379,14 +1379,35 @@ if menu == menus[0]:
                 "**Distribuição dos pesos**"
             )
 
-            fig = px.histogram(
-                df_filtro,
+            distribuicao = (
+                df_filtro["Peso (kg)"]
+                .round(2)
+                .value_counts()
+                .sort_index()
+                .rename_axis("Peso (kg)")
+                .reset_index(name="Quantidade")
+            )
+
+            fig = px.bar(
+                distribuicao,
                 x="Peso (kg)",
-                nbins=8
+                y="Quantidade"
             )
 
             fig.update_traces(
-                marker_color="#8a35ff"
+                marker_color="#8a35ff",
+                text="Quantidade",
+                textposition="outside"
+            )
+
+            fig.update_xaxes(
+                title="Peso (kg)",
+                type="category"
+            )
+
+            fig.update_yaxes(
+                title="Quantidade de registros",
+                dtick=1
             )
 
             st.plotly_chart(
@@ -1421,6 +1442,9 @@ elif menu == menus[1]:
             )
 
     rdf = pd.DataFrame(resumo)
+
+    if not rdf.empty:
+        rdf["Data"] = rdf["Data"].str[:5]
 
     if rdf.empty:
 
