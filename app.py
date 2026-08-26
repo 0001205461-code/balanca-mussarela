@@ -392,35 +392,24 @@ def vazio():
 
 
 def data_planilha(v):
-
     if pd.isna(v) or str(v).strip() == "":
         return None
 
     s = str(v).strip()
 
+    # Formato DD/MM/YYYY
     try:
-        d = pd.to_datetime(
-            s,
-            format="%d/%m/%Y",
-            errors="coerce"
-        )
-
+        d = pd.to_datetime(s, format="%d/%m/%Y", errors="coerce")
         if not pd.isna(d):
             return d.strftime("%d/%m/%Y")
-
     except Exception:
         pass
 
+    # Formato ISO (YYYY-MM-DD ou YYYY-MM-DDT...)
     try:
-        d = pd.to_datetime(
-            s,
-            utc=True,
-            errors="coerce"
-        )
-
+        d = pd.to_datetime(s, errors="coerce")
         if not pd.isna(d):
-            return d.tz_convert(TZ).strftime("%d/%m/%Y")
-
+            return d.strftime("%d/%m/%Y")
     except Exception:
         pass
 
@@ -428,47 +417,30 @@ def data_planilha(v):
 
 
 def hora_planilha(v):
-
     if pd.isna(v) or str(v).strip() == "":
         return None
 
     s = str(v).strip()
 
-    m = re.match(
-        r"^(\d{1,2}):(\d{2})(?::(\d{2}))?$",
-        s
-    )
-
+    # Formato padrão HH:MM:SS ou HH:MM
+    m = re.match(r"^(\d{1,2}):(\d{2})(?::(\d{2}))?$", s)
     if m:
-        return (
-            f"{int(m.group(1)):02d}:"
-            f"{m.group(2)}:"
-            f"{m.group(3) or '00'}"
-        )
+        return f"{int(m.group(1)):02d}:{m.group(2)}:{m.group(3) or '00'}"
 
-    m = re.match(
-        r"^1899-12-\d{2}T(\d{2}:\d{2}:\d{2})",
-        s
-    )
+    # Formato retornado pelo Sheets/Apps Script (ex: 1899-12-30T16:58:46.000Z)
+    m_iso = re.search(r"T(\d{2}:\d{2}:\d{2})", s)
+    if m_iso:
+        return m_iso.group(1)
 
-    if m:
-        return m.group(1)
-
+    # Parser genérico sem alterar o fuso horário (ignora a conversão para UTC)
     try:
-        d = pd.to_datetime(
-            s,
-            utc=True,
-            errors="coerce"
-        )
-
+        d = pd.to_datetime(s, errors="coerce")
         if not pd.isna(d):
-            return d.tz_convert(TZ).strftime("%H:%M:%S")
-
+            return d.strftime("%H:%M:%S")
     except Exception:
         pass
 
     return s
-
 
 def lote(v):
 
