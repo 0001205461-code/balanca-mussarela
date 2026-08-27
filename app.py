@@ -1624,36 +1624,6 @@ else:
     else:
 
         # =====================================================
-        # STATUS DAS PLANILHAS
-        # Visível diretamente no histórico.
-        # =====================================================
-
-        st.markdown(
-            '<div class="section-title">'
-            '📋 Status do Histórico'
-            '</div>'
-            '<div class="section-sub">'
-            'Veja rapidamente quais planilhas estão pendentes ou já foram enviadas.'
-            '</div>',
-            unsafe_allow_html=True
-        )
-
-        for nome in abas:
-
-            rot = rotulo(nome)
-            chave_envio = f"historico_enviado_{nome}"
-
-            if chave_envio not in st.session_state:
-                st.session_state[chave_envio] = False
-
-            if st.session_state[chave_envio]:
-                st.success(f"📄 {rot} — ✅ Enviado")
-            else:
-                st.warning(f"📄 {rot} — 🟡 Pendente")
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        # =====================================================
         # PLANILHAS / DADOS DO DIA
         # A planilha continua disponível para consulta.
         # O botão de envio fica dentro de cada dia para não
@@ -1669,6 +1639,9 @@ else:
 
             rot = rotulo(nome)
             chave_envio = f"historico_enviado_{nome}"
+
+            if chave_envio not in st.session_state:
+                st.session_state[chave_envio] = False
 
             with st.expander(
                 f"📄 {rot} — {'✅ Enviado' if st.session_state[chave_envio] else '🟡 Pendente'}"
