@@ -1623,6 +1623,65 @@ else:
 
     else:
 
+        # =====================================================
+        # STATUS DAS PLANILHAS
+        # Visível diretamente no histórico, sem precisar abrir
+        # cada planilha.
+        # =====================================================
+
+        st.markdown(
+            '<div class="section-title">'
+            '📋 Status do Histórico'
+            '</div>'
+            '<div class="section-sub">'
+            'Veja rapidamente quais planilhas estão pendentes ou já foram enviadas.'
+            '</div>',
+            unsafe_allow_html=True
+        )
+
+        for nome in abas:
+
+            rot = rotulo(nome)
+            chave_envio = f"historico_enviado_{nome}"
+
+            if chave_envio not in st.session_state:
+                st.session_state[chave_envio] = False
+
+            col_data, col_status, col_acao = st.columns([2.2, 1.2, 1.4])
+
+            with col_data:
+                st.markdown(f"**📄 {rot}**")
+
+            with col_status:
+                if st.session_state[chave_envio]:
+                    st.success("✅ Enviado")
+                else:
+                    st.warning("🟡 Pendente")
+
+            with col_acao:
+                if not st.session_state[chave_envio]:
+                    if st.button(
+                        "📤 Marcar como enviada",
+                        key=f"marcar_enviada_{nome}",
+                        use_container_width=True
+                    ):
+                        st.session_state[chave_envio] = True
+                        st.rerun()
+                else:
+                    if st.button(
+                        "↩️ Marcar como pendente",
+                        key=f"marcar_pendente_{nome}",
+                        use_container_width=True
+                    ):
+                        st.session_state[chave_envio] = False
+                        st.rerun()
+
+        st.markdown("<br>", unsafe_allow_html=True)
+
+        # =====================================================
+        # DETALHES DAS PLANILHAS
+        # =====================================================
+
         for nome in abas:
 
             temp = dados.get(
@@ -1656,38 +1715,6 @@ else:
                         hist.index + 1
                     )
 
-                    # Status de envio da planilha no histórico
-                    chave_envio = f"historico_enviado_{nome}"
-
-                    if chave_envio not in st.session_state:
-                        st.session_state[chave_envio] = False
-
-                    col_status, col_acao = st.columns([3, 1])
-
-                    with col_status:
-                        if st.session_state[chave_envio]:
-                            st.success("✅ Enviado")
-                        else:
-                            st.warning("🟡 Pendente")
-
-                    with col_acao:
-                        if not st.session_state[chave_envio]:
-                            if st.button(
-                                "📤 Marcar como enviada",
-                                key=f"marcar_enviada_{nome}",
-                                use_container_width=True
-                            ):
-                                st.session_state[chave_envio] = True
-                                st.rerun()
-                        else:
-                            if st.button(
-                                "↩️ Marcar como pendente",
-                                key=f"marcar_pendente_{nome}",
-                                use_container_width=True
-                            ):
-                                st.session_state[chave_envio] = False
-                                st.rerun()
-
                     tabela(
                         hist,
                         400
@@ -1709,7 +1736,6 @@ else:
                         )
 
 
-# =========================================================
 # RODAPÉ
 # =========================================================
 
