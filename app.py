@@ -1625,8 +1625,7 @@ else:
 
         # =====================================================
         # STATUS DAS PLANILHAS
-        # Visível diretamente no histórico, sem precisar abrir
-        # cada planilha.
+        # Visível diretamente no histórico.
         # =====================================================
 
         st.markdown(
@@ -1647,39 +1646,18 @@ else:
             if chave_envio not in st.session_state:
                 st.session_state[chave_envio] = False
 
-            col_data, col_status, col_acao = st.columns([2.2, 1.2, 1.4])
-
-            with col_data:
-                st.markdown(f"**📄 {rot}**")
-
-            with col_status:
-                if st.session_state[chave_envio]:
-                    st.success("✅ Enviado")
-                else:
-                    st.warning("🟡 Pendente")
-
-            with col_acao:
-                if not st.session_state[chave_envio]:
-                    if st.button(
-                        "📤 Marcar como enviada",
-                        key=f"marcar_enviada_{nome}",
-                        use_container_width=True
-                    ):
-                        st.session_state[chave_envio] = True
-                        st.rerun()
-                else:
-                    if st.button(
-                        "↩️ Marcar como pendente",
-                        key=f"marcar_pendente_{nome}",
-                        use_container_width=True
-                    ):
-                        st.session_state[chave_envio] = False
-                        st.rerun()
+            if st.session_state[chave_envio]:
+                st.success(f"📄 {rot} — ✅ Enviado")
+            else:
+                st.warning(f"📄 {rot} — 🟡 Pendente")
 
         st.markdown("<br>", unsafe_allow_html=True)
 
         # =====================================================
-        # DETALHES DAS PLANILHAS
+        # PLANILHAS / DADOS DO DIA
+        # A planilha continua disponível para consulta.
+        # O botão de envio fica dentro de cada dia para não
+        # deixar o histórico visualmente carregado.
         # =====================================================
 
         for nome in abas:
@@ -1690,10 +1668,28 @@ else:
             )
 
             rot = rotulo(nome)
+            chave_envio = f"historico_enviado_{nome}"
 
             with st.expander(
-                f"📄 {rot}"
+                f"📄 {rot} — {'✅ Enviado' if st.session_state[chave_envio] else '🟡 Pendente'}"
             ):
+
+                if st.session_state[chave_envio]:
+                    if st.button(
+                        "↩️ Marcar como pendente",
+                        key=f"marcar_pendente_{nome}",
+                        use_container_width=False
+                    ):
+                        st.session_state[chave_envio] = False
+                        st.rerun()
+                else:
+                    if st.button(
+                        "📤 Marcar como enviada",
+                        key=f"marcar_enviada_{nome}",
+                        use_container_width=False
+                    ):
+                        st.session_state[chave_envio] = True
+                        st.rerun()
 
                 if temp.empty:
 
@@ -1734,7 +1730,6 @@ else:
                             resumo,
                             300
                         )
-
 
 # RODAPÉ
 # =========================================================
