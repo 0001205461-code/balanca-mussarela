@@ -426,23 +426,19 @@ def hora_planilha(v):
 
     s = str(v).strip()
 
-    # 1. Se vier no formato ISO do Sheets (ex: 1899-12-30T20:54:13.000Z),
-    # corrige o deslocamento de 8 horas antes de exibir a hora
+    # 1. Se vier no formato ISO do Google Sheets,
+    # pega somente a hora, sem aplicar conversão de fuso.
     m_iso = re.search(r"T(\d{2}:\d{2}:\d{2})", s)
     if m_iso:
-        h, m, sec = map(int, m_iso.group(1).split(":"))
-        total_segundos = (h * 3600 + m * 60 + sec - 8 * 3600) % (24 * 3600)
-        h = total_segundos // 3600
-        m = (total_segundos % 3600) // 60
-        sec = total_segundos % 60
-        return f"{h:02d}:{m:02d}:{sec:02d}"
+        return m_iso.group(1)
 
     # 2. Formato comum HH:MM:SS ou HH:MM
     m = re.match(r"^(\d{1,2}):(\d{2})(?::(\d{2}))?$", s)
     if m:
         return f"{int(m.group(1)):02d}:{m.group(2)}:{m.group(3) or '00'}"
 
-    # 3. Se contiver a letra 'Z' ou offset de fuso, remove antes de converter
+    # 3. Outros formatos de data/hora.
+    # Não converte timezone.
     s_limpo = re.sub(r"(Z|[+-]\d{2}:\d{2})$", "", s)
 
     try:
