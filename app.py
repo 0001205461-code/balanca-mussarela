@@ -426,25 +426,57 @@ def hora_planilha(v):
 
     s = str(v).strip()
 
-    # 1. Se vier no formato ISO do Google Sheets,
-    # pega somente a hora, sem aplicar conversão de fuso.
-    m_iso = re.search(r"T(\d{2}:\d{2}:\d{2})", s)
+    # 1. Horário já formatado como HH:MM:SS
+    if re.fullmatch(r"\d{1,2}:\d{2}:\d{2}", s):
+        h, m, sec = s.split(":")
+        return f"{int(h):02d}:{int(m):02d}:{int(sec):02d}"
+
+    # 2. Horário HH:MM
+    if re.fullmatch(r"\d{1,2}:\d{2}", s):
+        h, m = s.split(":")
+        return f"{int(h):02d}:{int(m):02d}:00"
+
+    # 3. ISO vindo do Google Sheets.
+    # IMPORTANTE: não aplicar -8h, -5h ou -3h.
+    # O Apps Script já entrega a hora no fuso correto.
+    m_iso = re.search(r"T(\d{2}):(\d{2}):(\d{2})", s)
+
     if m_iso:
-        return m_iso.group(1)
+        return (
+            f"{m_iso.group(1)}:"
+            f"{m_iso.group(2)}:"
+            f"{m_iso.group(3)}"
+        )
 
-    # 2. Formato comum HH:MM:SS ou HH:MM
-    m = re.match(r"^(\d{1,2}):(\d{2})(?::(\d{2}))?$", s)
-    if m:
-        return f"{int(m.group(1)):02d}:{m.group(2)}:{m.group(3) or '00'}"
-
-    # 3. Outros formatos de data/hora.
-    # Não converte timezone.
-    s_limpo = re.sub(r"(Z|[+-]\d{2}:\d{2})$", "", s)
-
+    # 4. Número do Google Sheets.
+    # Ex.: 0.875 = 21:00:00
     try:
-        d = pd.to_datetime(s_limpo, errors="coerce")
+        numero_hora = float(s)
+
+        if 0 <= numero_hora < 1:
+            total_segundos = round(
+                numero_hora * 86400
+            ) % 86400
+
+            h = total_segundos // 3600
+            m = (total_segundos % 3600) // 60
+            sec = total_segundos % 60
+
+            return f"{h:02d}:{m:02d}:{sec:02d}"
+
+    except Exception:
+        pass
+
+    # 5. Última tentativa sem conversão de fuso
+    try:
+        d = pd.to_datetime(
+            s,
+            errors="coerce"
+        )
+
         if not pd.isna(d):
             return d.strftime("%H:%M:%S")
+
     except Exception:
         pass
 
