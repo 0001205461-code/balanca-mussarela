@@ -21,7 +21,6 @@ st.set_page_config(
 )
 
 URL_SCRIPT = "https://script.google.com/macros/s/AKfycbwQ8IIVRIDsx8-CdJeKw6LUr4rBOFGX0jb42augc8v89TZVNWy0O8mlBAK23O2Tjymmaw/exec"
-TZ = "America/Sao_Paulo"
 
 
 # =========================================================
@@ -175,18 +174,11 @@ section[data-testid="stSidebar"] .stButton button[kind="primary"]{
  transform:translateY(-2px);
 }
 
-
-/*
- Espaço utilizado para colocar os botões exatamente
- na altura dos campos de seleção.
-*/
 .filtro-botao{
  height:28px;
  width:100%;
 }
 
-
-/* Remove espaçamentos extras do botão de download */
 div[data-testid="stDownloadButton"]{
  margin-top:0!important;
 }
@@ -391,95 +383,74 @@ def vazio():
     )
 
 
+# =========================================================
+# DATA
+# IMPORTANTE:
+# A DATA DA PLANILHA É TRATADA COMO TEXTO.
+# NÃO HÁ CONVERSÃO DE FUSO.
+# =========================================================
+
 def data_planilha(v):
-    if pd.isna(v) or str(v).strip() == "":
-        return None
 
-    s = str(v).strip()
+    if v is None:
+        return ""
 
-    # Se contiver a letra 'T' (formato ISO/Sheets), pega só a parte da data YYYY-MM-DD ou extrai via Regex
-    if "T" in s:
-        s = s.split("T")[0]
-
-    # Tenta converter no formato DD/MM/YYYY
     try:
-        d = pd.to_datetime(s, format="%d/%m/%Y", errors="coerce")
-        if not pd.isna(d):
-            return d.strftime("%d/%m/%Y")
+        if pd.isna(v):
+            return ""
     except Exception:
         pass
 
-    # Tenta converter qualquer outro formato sem considerar UTC/Timezone
-    try:
-        d = pd.to_datetime(s, errors="coerce")
-        if not pd.isna(d):
-            return d.strftime("%d/%m/%Y")
-    except Exception:
-        pass
+    return str(v).strip()
 
-    return s
 
+# =========================================================
+# HORA
+# IMPORTANTE:
+# A HORA DA PLANILHA É TRATADA COMO TEXTO.
+# NÃO HÁ CONVERSÃO DE FUSO.
+# NÃO SOMA.
+# NÃO SUBTRAI.
+# =========================================================
 
 def hora_planilha(v):
-    """
-    Mantém a hora recebida do Apps Script sem conversão de fuso.
-    O Apps Script já envia a hora no fuso America/Sao_Paulo.
-    """
-    if pd.isna(v) or str(v).strip() == "":
-        return None
 
-    s = str(v).strip()
+    if v is None:
+        return ""
 
-    # Hora já formatada como HH:MM:SS
-    m = re.fullmatch(r"(\d{1,2}):(\d{2}):(\d{2})", s)
-    if m:
-        h, mi, sec = map(int, m.groups())
-        if 0 <= h <= 23 and 0 <= mi <= 59 and 0 <= sec <= 59:
-            return f"{h:02d}:{mi:02d}:{sec:02d}"
-
-    # Hora no formato HH:MM
-    m = re.fullmatch(r"(\d{1,2}):(\d{2})", s)
-    if m:
-        h, mi = map(int, m.groups())
-        if 0 <= h <= 23 and 0 <= mi <= 59:
-            return f"{h:02d}:{mi:02d}:00"
-
-    # Google Sheets pode retornar hora como fração do dia
     try:
-        numero_hora = float(s)
-        if 0 <= numero_hora < 1:
-            total_segundos = round(numero_hora * 86400) % 86400
-            h = total_segundos // 3600
-            mi = (total_segundos % 3600) // 60
-            sec = total_segundos % 60
-            return f"{h:02d}:{mi:02d}:{sec:02d}"
+        if pd.isna(v):
+            return ""
     except Exception:
         pass
 
-    # ISO: extrai somente o horário, sem conversão de timezone
-    m = re.search(r"T(\d{2}):(\d{2}):(\d{2})", s)
-    if m:
-        return f"{m.group(1)}:{m.group(2)}:{m.group(3)}"
+    return str(v).strip()
 
-    # Última tentativa: procura HH:MM:SS no texto
-    m = re.search(r"\b(\d{1,2}):(\d{2}):(\d{2})\b", s)
-    if m:
-        h, mi, sec = map(int, m.groups())
-        if 0 <= h <= 23 and 0 <= mi <= 59 and 0 <= sec <= 59:
-            return f"{h:02d}:{mi:02d}:{sec:02d}"
 
-    return s
-
+# =========================================================
+# LOTE
+# =========================================================
 
 def lote(v):
 
-    if pd.isna(v) or str(v).strip() == "":
+    if v is None:
+        return "Sem lote"
+
+    try:
+        if pd.isna(v):
+            return "Sem lote"
+    except Exception:
+        pass
+
+    s = str(v).strip()
+
+    if not s:
         return "Sem lote"
 
     s = re.sub(
         r"\s+",
         " ",
-        str(v).strip()
+        s
     )
 
     if re.fullmatch(r"\d+\.0+", s):
@@ -488,12 +459,17 @@ def lote(v):
     return s
 
 
+# =========================================================
+# NORMALIZAÇÃO
+# =========================================================
+
 def normalizar(df):
 
     if df is None or df.empty:
         return vazio()
 
     df = df.copy()
+
     nomes = {}
 
     for c in df.columns:
@@ -533,13 +509,13 @@ def normalizar(df):
         "Peso (kg)",
         "Lote"
     ]:
-        if c not in df:
-            df[c] = None
+        if c not in df.columns:
+            df[c] = ""
 
-    df["Peso (kg)"] = pd.to_numeric(
-        df["Peso (kg)"],
-        errors="coerce"
-    )
+    # =====================================================
+    # DATA E HORA:
+    # MANTÉM EXATAMENTE O TEXTO RECEBIDO DO SCRIPT
+    # =====================================================
 
     df["Data"] = df["Data"].map(
         data_planilha
@@ -551,6 +527,22 @@ def normalizar(df):
 
     df["Lote"] = df["Lote"].map(
         lote
+    )
+
+    # =====================================================
+    # SOMENTE O PESO É CONVERTIDO PARA NÚMERO,
+    # POIS ELE PRECISA SER USADO NOS CÁLCULOS.
+    # =====================================================
+
+    df["Peso (kg)"] = (
+        df["Peso (kg)"]
+        .astype(str)
+        .str.replace(",", ".", regex=False)
+    )
+
+    df["Peso (kg)"] = pd.to_numeric(
+        df["Peso (kg)"],
+        errors="coerce"
     )
 
     return df[
@@ -566,53 +558,117 @@ def normalizar(df):
     ).reset_index(drop=True)
 
 
+# =========================================================
+# CARREGAR DADOS DO GOOGLE APPS SCRIPT
+# =========================================================
+
 @st.cache_data(ttl=15)
 def carregar():
 
     r = requests.get(
         URL_SCRIPT,
-        timeout=20
+        timeout=30,
+        allow_redirects=True
     )
 
     r.raise_for_status()
 
-    dados = r.json()
+    texto = r.text.strip()
+
+    # =====================================================
+    # VERIFICA SE O APPS SCRIPT REALMENTE DEVOLVEU ALGO
+    # =====================================================
+
+    if not texto:
+        raise ValueError(
+            "O Apps Script devolveu uma resposta vazia."
+        )
+
+    # =====================================================
+    # TENTA CONVERTER PARA JSON
+    # =====================================================
+
+    try:
+
+        dados = r.json()
+
+    except Exception:
+
+        inicio = texto[:500]
+
+        raise ValueError(
+            "O Apps Script não devolveu JSON válido.\n\n"
+            "Resposta recebida:\n" +
+            inicio
+        )
+
+    # =====================================================
+    # O JSON PRINCIPAL PRECISA SER UM DICIONÁRIO
+    # =====================================================
 
     if not isinstance(dados, dict):
+
         raise ValueError(
             "O Apps Script não devolveu as abas corretamente."
         )
 
     saida = {}
 
+    # =====================================================
+    # PERCORRE AS ABAS
+    # =====================================================
+
     for nome, conteudo in dados.items():
 
-        if (
-            not isinstance(conteudo, list)
-            or len(conteudo) < 1
-        ):
+        if not isinstance(conteudo, list):
+            continue
+
+        if len(conteudo) < 1:
             continue
 
         cab = conteudo[0]
         linhas = conteudo[1:]
 
-        if isinstance(cab, list):
+        if not isinstance(cab, list):
+            continue
 
-            saida[str(nome)] = normalizar(
-                pd.DataFrame(
-                    linhas,
-                    columns=cab
-                )
+        # =================================================
+        # GARANTE QUE OS NOMES DAS COLUNAS SEJAM TEXTO
+        # =================================================
+
+        cab = [
+            str(x).strip()
+            for x in cab
+        ]
+
+        # =================================================
+        # CRIA DATAFRAME
+        # =================================================
+
+        try:
+
+            df = pd.DataFrame(
+                linhas,
+                columns=cab
             )
+
+        except Exception:
+            continue
+
+        saida[str(nome)] = normalizar(df)
 
     return saida
 
+
+# =========================================================
+# EXTRAI DATA DO NOME DA ABA
+# =========================================================
 
 def data_aba(nome):
 
     s = str(nome)
 
-    for padrao, formato in [
+    padroes = [
 
         (
             r"(?<!\d)(\d{2}-\d{2}-\d{4})(?!\d)",
@@ -624,7 +680,9 @@ def data_aba(nome):
             "%Y-%m-%d"
         )
 
-    ]:
+    ]
+
+    for padrao, formato in padroes:
 
         m = re.search(
             padrao,
@@ -634,6 +692,7 @@ def data_aba(nome):
         if m:
 
             try:
+
                 return datetime.strptime(
                     m.group(1),
                     formato
@@ -645,6 +704,10 @@ def data_aba(nome):
     return None
 
 
+# =========================================================
+# RÓTULO DA ABA
+# =========================================================
+
 def rotulo(nome):
 
     d = data_aba(nome)
@@ -655,6 +718,10 @@ def rotulo(nome):
         else str(nome)
     )
 
+
+# =========================================================
+# CHAVE DE ORDENAÇÃO
+# =========================================================
 
 def chave(nome):
 
@@ -670,6 +737,10 @@ def chave(nome):
     )
 
 
+# =========================================================
+# FORMATA NÚMERO
+# =========================================================
+
 def numero(v):
 
     return (
@@ -679,6 +750,10 @@ def numero(v):
         .replace("X", ".")
     )
 
+
+# =========================================================
+# TABELA
+# =========================================================
 
 def tabela(df, altura=500):
 
@@ -747,6 +822,10 @@ def tabela(df, altura=500):
     )
 
 
+# =========================================================
+# LAYOUT DOS GRÁFICOS
+# =========================================================
+
 def layout(fig, altura=300):
 
     fig.update_layout(
@@ -780,6 +859,10 @@ def layout(fig, altura=300):
     return fig
 
 
+# =========================================================
+# AGRUPAR POR LOTE
+# =========================================================
+
 def agrupar_lote(df):
 
     if df.empty:
@@ -805,6 +888,10 @@ def agrupar_lote(df):
         }
     ).reset_index()
 
+
+# =========================================================
+# MÉTRICAS
+# =========================================================
 
 def metricas(df):
 
@@ -908,9 +995,7 @@ def xlsx(df):
 
     ws.freeze_panes = "A2"
 
-    ws.auto_filter.ref = (
-        ws.dimensions
-    )
+    ws.auto_filter.ref = ws.dimensions
 
     wb.save(b)
 
@@ -932,11 +1017,20 @@ except Exception as e:
     erro = str(e)
 
 
+# =========================================================
+# ABAS
+# =========================================================
+
 abas = sorted(
     dados.keys(),
     key=chave,
     reverse=True
 )
+
+
+# =========================================================
+# ERRO
+# =========================================================
 
 if erro:
 
@@ -1051,7 +1145,7 @@ st.markdown(
 
 
 # =========================================================
-# FILTROS E AÇÕES
+# FILTROS
 # =========================================================
 
 dia = st.session_state.get(
@@ -1103,7 +1197,10 @@ with c1:
 # =========================================================
 
 df = (
-    dados.get(dia, vazio())
+    dados.get(
+        dia,
+        vazio()
+    )
     if dia
     else vazio()
 )
@@ -1235,7 +1332,10 @@ if menu == menus[0]:
 
     metricas(df_filtro)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown(
+        "<br>",
+        unsafe_allow_html=True
+    )
 
 
     # =====================================================
@@ -1641,13 +1741,6 @@ else:
 
     else:
 
-        # =====================================================
-        # PLANILHAS / DADOS DO DIA
-        # A planilha continua disponível para consulta.
-        # O botão de envio fica dentro de cada dia para não
-        # deixar o histórico visualmente carregado.
-        # =====================================================
-
         for nome in abas:
 
             temp = dados.get(
@@ -1656,30 +1749,45 @@ else:
             )
 
             rot = rotulo(nome)
-            chave_envio = f"historico_enviado_{nome}"
+
+            chave_envio = (
+                f"historico_enviado_{nome}"
+            )
 
             if chave_envio not in st.session_state:
                 st.session_state[chave_envio] = False
 
             with st.expander(
-                f"📄 {rot} — {'✅ Enviado' if st.session_state[chave_envio] else '🟡 Pendente'}"
+                f"📄 {rot} — "
+                f"{'✅ Enviado' if st.session_state[chave_envio] else '🟡 Pendente'}"
             ):
 
                 if st.session_state[chave_envio]:
+
                     if st.button(
                         "↩️ Marcar como pendente",
                         key=f"marcar_pendente_{nome}",
                         use_container_width=False
                     ):
-                        st.session_state[chave_envio] = False
+
+                        st.session_state[
+                            chave_envio
+                        ] = False
+
                         st.rerun()
+
                 else:
+
                     if st.button(
                         "📤 Marcar como enviada",
                         key=f"marcar_enviada_{nome}",
                         use_container_width=False
                     ):
-                        st.session_state[chave_envio] = True
+
+                        st.session_state[
+                            chave_envio
+                        ] = True
+
                         st.rerun()
 
                 if temp.empty:
@@ -1722,6 +1830,8 @@ else:
                             300
                         )
 
+
+# =========================================================
 # RODAPÉ
 # =========================================================
 
