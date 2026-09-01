@@ -421,66 +421,56 @@ def data_planilha(v):
 
 
 def hora_planilha(v):
+    """
+    Mantém a hora recebida do Apps Script sem conversão de fuso.
+    O Apps Script já envia a hora no fuso America/Sao_Paulo.
+    """
     if pd.isna(v) or str(v).strip() == "":
         return None
 
     s = str(v).strip()
 
-    # 1. Horário já formatado como HH:MM:SS
-    if re.fullmatch(r"\d{1,2}:\d{2}:\d{2}", s):
-        h, m, sec = s.split(":")
-        return f"{int(h):02d}:{int(m):02d}:{int(sec):02d}"
+    # Hora já formatada como HH:MM:SS
+    m = re.fullmatch(r"(\d{1,2}):(\d{2}):(\d{2})", s)
+    if m:
+        h, mi, sec = map(int, m.groups())
+        if 0 <= h <= 23 and 0 <= mi <= 59 and 0 <= sec <= 59:
+            return f"{h:02d}:{mi:02d}:{sec:02d}"
 
-    # 2. Horário HH:MM
-    if re.fullmatch(r"\d{1,2}:\d{2}", s):
-        h, m = s.split(":")
-        return f"{int(h):02d}:{int(m):02d}:00"
+    # Hora no formato HH:MM
+    m = re.fullmatch(r"(\d{1,2}):(\d{2})", s)
+    if m:
+        h, mi = map(int, m.groups())
+        if 0 <= h <= 23 and 0 <= mi <= 59:
+            return f"{h:02d}:{mi:02d}:00"
 
-    # 3. ISO vindo do Google Sheets.
-    # IMPORTANTE: não aplicar -8h, -5h ou -3h.
-    # O Apps Script já entrega a hora no fuso correto.
-    m_iso = re.search(r"T(\d{2}):(\d{2}):(\d{2})", s)
-
-    if m_iso:
-        return (
-            f"{m_iso.group(1)}:"
-            f"{m_iso.group(2)}:"
-            f"{m_iso.group(3)}"
-        )
-
-    # 4. Número do Google Sheets.
-    # Ex.: 0.875 = 21:00:00
+    # Google Sheets pode retornar hora como fração do dia
     try:
         numero_hora = float(s)
-
         if 0 <= numero_hora < 1:
-            total_segundos = round(
-                numero_hora * 86400
-            ) % 86400
-
+            total_segundos = round(numero_hora * 86400) % 86400
             h = total_segundos // 3600
-            m = (total_segundos % 3600) // 60
+            mi = (total_segundos % 3600) // 60
             sec = total_segundos % 60
-
-            return f"{h:02d}:{m:02d}:{sec:02d}"
-
+            return f"{h:02d}:{mi:02d}:{sec:02d}"
     except Exception:
         pass
 
-    # 5. Última tentativa sem conversão de fuso
-    try:
-        d = pd.to_datetime(
-            s,
-            errors="coerce"
-        )
+    # ISO: extrai somente o horário, sem conversão de timezone
+    m = re.search(r"T(\d{2}):(\d{2}):(\d{2})", s)
+    if m:
+        return f"{m.group(1)}:{m.group(2)}:{m.group(3)}"
 
-        if not pd.isna(d):
-            return d.strftime("%H:%M:%S")
-
-    except Exception:
-        pass
+    # Última tentativa: procura HH:MM:SS no texto
+    m = re.search(r"\b(\d{1,2}):(\d{2}):(\d{2})\b", s)
+    if m:
+        h, mi, sec = map(int, m.groups())
+        if 0 <= h <= 23 and 0 <= mi <= 59 and 0 <= sec <= 59:
+            return f"{h:02d}:{mi:02d}:{sec:02d}"
 
     return s
+
+
 def lote(v):
 
     if pd.isna(v) or str(v).strip() == "":
